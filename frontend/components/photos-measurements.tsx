@@ -49,11 +49,9 @@ export function PhotosMeasurements({ studentId, userId }: { studentId: string; u
     const fetchData = async () => {
       try {
         setLoading(true)
-        // Fetch measurements
         const measurementsResponse = await apiClient.get(`/analytics/body-measurements/?user=${userId}`)
         setMeasurements(measurementsResponse.data)
         
-        // Fetch photos
         const photosResponse = await apiClient.get(`/analytics/progress-photos/?user=${userId}`)
         setPhotos(photosResponse.data)
       } catch (error) {

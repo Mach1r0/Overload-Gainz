@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
 import { NavHeader } from "@/components/nav-header"
 import { Button } from "@/components/ui/button"
@@ -11,7 +11,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ArrowLeft, Plus, MoreVertical, Check, Users } from "lucide-react"
+import { AddRoutineModal } from "@/components/add-routine-modal"
 import Link from "next/link"
+import { apiClient } from "@/lib/api/client"
+import { authApi } from "@/lib/api/auth"
 
 interface Exercise {
   id: number
@@ -49,13 +52,77 @@ const muscleGroups = [
   "Costas Superior",
 ]
 
-export default function NewProgramPage() {
+export default function EditProgramPage({
+  params,
+}: {
+  params: Promise<{ id: string; programId: string }>
+}) {
+  const { id, programId } = use(params)
   const router = useRouter()
   const [saving, setSaving] = useState(false)
-  const [programTitle, setProgramTitle] = useState("Programa Sem Título")
+  const [loading, setLoading] = useState(true)
+  const [programTitle, setProgramTitle] = useState("")
   const [programDuration, setProgramDuration] = useState("unlimited")
   const [programNote, setProgramNote] = useState("")
   const [routines, setRoutines] = useState<Routine[]>([])
+  const [isRoutineModalOpen, setIsRoutineModalOpen] = useState(false)
+
+  useEffect(() => {
+    const fetchProgramData = async () => {
+      try {
+        const user = authApi.getUserFromStorage()
+        if (!user) {
+          setLoading(false)
+          return
+        }
+
+        const programResponse = await apiClient.get(`/programs/${programId}/`)
+        const program = programResponse.data
+
+        setProgramTitle(program.name)
+        setProgramNote(program.description || "")
+        setProgramDuration("unlimited")
+
+        // Extract routines from trainings
+        const routinesMap = new Map<
+          string,
+          { id: number; name: string; exercises: any[] }
+        >()
+
+        if (program.trainings && program.trainings.length > 0) {
+          program.trainings.forEach((training: any) => {
+            if (training.workouts) {
+              training.workouts.forEach((workout: any) => {
+                if (!routinesMap.has(workout.name)) {
+                  const exercises =
+                    workout.exercises?.map((ex: any) => ({
+                      id: ex.id,
+                      name: ex.name || "",
+                      sets: ex.sets || 1,
+                      muscleGroup: ex.exercise?.muscle_group || "Outro",
+                    })) || []
+
+                  routinesMap.set(workout.name, {
+                    id: workout.id,
+                    name: workout.name,
+                    exercises,
+                  })
+                }
+              })
+            }
+          })
+        }
+
+        setRoutines(Array.from(routinesMap.values()))
+        setLoading(false)
+      } catch (error) {
+        console.error("Erro ao carregar dados do programa:", error)
+        setLoading(false)
+      }
+    }
+
+    fetchProgramData()
+  }, [programId])
 
   const addRoutine = () => {
     const newRoutine: Routine = {
@@ -79,6 +146,7 @@ export default function NewProgramPage() {
       ...routine,
       id: Date.now(),
       name: `${routine.name} (cópia)`,
+      exercises: routine.exercises.map((e) => ({ ...e, id: Date.now() + e.id })),
     }
     setRoutines([...routines, newRoutine])
   }
@@ -111,10 +179,27 @@ export default function NewProgramPage() {
     // TODO: Save to API
     await new Promise((resolve) => setTimeout(resolve, 1000))
     setSaving(false)
-    router.push("/programs")
+    router.push(`/trainer/${id}/programs`)
+  }
+
+  const handleImportRoutines = (importedRoutines: any[]) => {
+    const newRoutines = importedRoutines.map((r) => ({
+      id: Date.now() + Math.random() * 1000,
+      name: `${r.name} (cópia)`,
+      exercises: r.exercises.map((e: any) => ({ ...e, id: Date.now() + e.id })),
+    }))
+    setRoutines([...routines, ...newRoutines])
   }
 
   const muscleGroupCounts = getMuscleGroupCounts()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8 text-center">Carregando programa...</div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -122,7 +207,7 @@ export default function NewProgramPage() {
       <main className="container mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            <Link href="/programs">
+            <Link href={`/trainer/${id}/programs`}>
               <Button variant="ghost" size="icon">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
@@ -194,74 +279,68 @@ export default function NewProgramPage() {
                   <h2 className="text-lg font-semibold">Rotinas</h2>
                   <span className="text-sm text-muted-foreground bg-muted px-2 py-0.5 rounded">{routines.length}</span>
                 </div>
-                <Button onClick={addRoutine} className="flex items-center gap-2">
+                <Button onClick={() => setIsRoutineModalOpen(true)} className="flex items-center gap-2">
                   <Plus className="h-4 w-4" />
                   Adicionar Rotina
                 </Button>
               </div>
 
-              {routines.length === 0 ? (
-                <Card className="border-dashed">
-                  <CardContent className="py-12 text-center">
-                    <p className="text-muted-foreground mb-4">Nenhuma rotina adicionada ainda</p>
-                    <Button onClick={addRoutine} variant="outline">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Adicionar Primeira Rotina
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-3">
-                  {routines.map((routine) => (
-                    <Card key={routine.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
+              <div className="space-y-3">
+                {routines.map((routine) => (
+                  <Card key={routine.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <Link href={`/trainer/${id}/programs/${programId}/routine/${encodeURIComponent(routine.name)}`}>
                             <Input
                               value={routine.name}
-                              onChange={(e) => updateRoutineName(routine.id, e.target.value)}
-                              className="font-semibold border-none px-0 focus-visible:ring-0 bg-transparent"
+                              onChange={(e) => {
+                                e.preventDefault()
+                                updateRoutineName(routine.id, e.target.value)
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="font-semibold border-none px-0 focus-visible:ring-0 bg-transparent cursor-pointer hover:text-primary transition-colors"
                             />
-                            {routine.exercises.length > 0 ? (
-                              <div className="mt-2 space-y-1">
-                                {routine.exercises.map((exercise) => (
-                                  <p key={exercise.id} className="text-sm text-muted-foreground">
-                                    {exercise.sets}x {exercise.name}
-                                  </p>
-                                ))}
-                              </div>
-                            ) : (
-                              <Link
-                                href={`/programs/new/routine/${routine.id}`}
-                                className="text-sm text-primary hover:underline mt-2 inline-block"
-                              >
-                                + Adicionar exercícios
-                              </Link>
-                            )}
-                          </div>
-
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem asChild>
-                                <Link href={`/programs/new/routine/${routine.id}`}>Editar Exercícios</Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => duplicateRoutine(routine)}>Duplicar</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive" onClick={() => deleteRoutine(routine.id)}>
-                                Excluir
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          </Link>
+                          {routine.exercises.length > 0 ? (
+                            <div className="mt-2 space-y-1">
+                              {routine.exercises.map((exercise) => (
+                                <p key={exercise.id} className="text-sm text-muted-foreground">
+                                  {exercise.sets}x {exercise.name}
+                                </p>
+                              ))}
+                            </div>
+                          ) : (
+                            <Link
+                              href={`/trainer/${id}/programs/${programId}/routine/${encodeURIComponent(routine.name)}`}
+                              className="text-sm text-primary hover:underline mt-2 inline-block"
+                            >
+                              + Adicionar exercícios
+                            </Link>
+                          )}
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/trainer/${id}/programs/${programId}/routine/${encodeURIComponent(routine.name)}`}>Editar Exercícios</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => duplicateRoutine(routine)}>Duplicar</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => deleteRoutine(routine.id)}>
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
 
             <div className="flex gap-3">
@@ -269,7 +348,7 @@ export default function NewProgramPage() {
                 {saving ? "Salvando..." : "Salvar Programa"}
               </Button>
               <Button variant="outline" asChild>
-                <Link href="/programs">Cancelar</Link>
+                <Link href={`/trainer/${id}/programs`}>Cancelar</Link>
               </Button>
             </div>
           </div>
@@ -352,6 +431,14 @@ export default function NewProgramPage() {
             </Card>
           </div>
         </div>
+
+        <AddRoutineModal
+          open={isRoutineModalOpen}
+          onOpenChange={setIsRoutineModalOpen}
+          onCreateNew={addRoutine}
+          onImportRoutines={handleImportRoutines}
+          existingRoutines={routines}
+        />
       </main>
     </div>
   )

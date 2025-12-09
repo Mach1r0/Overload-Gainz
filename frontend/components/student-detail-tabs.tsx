@@ -66,12 +66,10 @@ export function StudentDetailTabs({ studentId, trainerId }: { studentId: string,
     .toUpperCase()
     .slice(0, 2)
   
-  // Extract user_id for passing to components that need to filter by user
   const userId = student.user_data.id.toString()
 
   return (
     <div className="space-y-6">
-      {/* Back Button */}
       <Button variant="ghost" asChild>
         <Link href={`/trainer/${trainerId}/students`} className="flex items-center gap-2">
           <ArrowLeft className="h-4 w-4" />
@@ -79,7 +77,6 @@ export function StudentDetailTabs({ studentId, trainerId }: { studentId: string,
         </Link>
       </Button>
 
-      {/* Student Header */}
       <Card>
         <CardHeader>
           <div className="flex items-start gap-4">

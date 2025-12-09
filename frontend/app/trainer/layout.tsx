@@ -12,7 +12,7 @@ export default function TrainerLayout({
     <RoleProtectedRoute allowedRole="teacher">
       <div className="flex min-h-screen">
         <SidebarNav userType="trainer" />
-        <div className="flex-1 pl-64">
+        <div className="flex-1 pl-72">
           <TopHeader />
           <main className="p-6">{children}</main>
         </div>

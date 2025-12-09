@@ -8,6 +8,7 @@ import { Plus, Calendar, Target, Eye, Users } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { authApi } from "@/lib/api/auth"
+import { apiClient } from "@/lib/api/client"
 
 interface DietPlan {
   id: number
@@ -53,26 +54,28 @@ export default function DietsPage() {
       
       if (!user) {
         console.error('No user found')
+        setLoading(false)
         return
       }
       
       // Get teacher ID
-      const teacherResponse = await import("@/lib/api").then(api => api.apiClient.get(`/trainer/teachers/?user=${user.id}`))
-      const teacher = teacherResponse.data[0]
+      const teacherResponse = await apiClient.get(`/trainer/teachers/?user=${user.id}`)
+      const teacher = teacherResponse.data?.[0]
       
       if (!teacher) {
         console.error('No teacher found for user')
+        setLoading(false)
         return
       }
       
-      const { getDietPlans } = await import("@/lib/api")
-      const dietsData = await getDietPlans()
+      // Get diet plans for this teacher
+      const dietsResponse = await apiClient.get(`/diet/?teacher=${teacher.id}`)
+      const dietsData = dietsResponse.data || []
       
       console.log('Diets data from API:', dietsData)
       
-      // Filter diets by teacher and transform data
+      // Transform data
       const transformedDiets = dietsData
-        .filter((diet: any) => diet.teacher?.id === user.id)
         .map((diet: any) => ({
           id: diet.id,
           name: diet.name,
@@ -81,8 +84,8 @@ export default function DietsPage() {
           end_date: diet.end_date,
           is_active: diet.is_active,
           meals_count: diet.meals?.length || 0,
-          student_name: diet.student?.first_name 
-            ? `${diet.student.first_name} ${diet.student.last_name || ''}`.trim()
+          student_name: diet.student?.user?.first_name 
+            ? `${diet.student.user.first_name} ${diet.student.user.last_name || ''}`.trim()
             : 'Aluno',
         }))
       

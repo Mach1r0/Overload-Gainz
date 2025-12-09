@@ -172,36 +172,13 @@ export default function DashboardPage() {
                 </div>
               </Card>
 
-              <Card className="p-4 bg-card border-border">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Treinos (Semana)</p>
-                    <p className="text-3xl font-bold text-foreground mt-1">{stats.workoutsThisWeek}</p>
-                  </div>
-                  <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center">
-                    <Dumbbell className="h-6 w-6 text-blue-500" />
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="p-4 bg-card border-border">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Progresso Médio</p>
-                    <p className="text-3xl font-bold text-foreground mt-1">{stats.avgProgress}%</p>
-                  </div>
-                  <div className="h-12 w-12 rounded-full bg-purple-500/10 flex items-center justify-center">
-                    <TrendingUp className="h-6 w-6 text-purple-500" />
-                  </div>
-                </div>
-              </Card>
 
               <Card className="p-4 bg-card border-border">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Tarefas Pendentes</p>
                     <p className="text-3xl font-bold text-foreground mt-1">{studentsWithPending}</p>
-                  </div>
+                </div>
                   <div className="h-12 w-12 rounded-full bg-orange-500/10 flex items-center justify-center">
                     <AlertCircle className="h-6 w-6 text-orange-500" />
                   </div>
@@ -209,7 +186,6 @@ export default function DashboardPage() {
               </Card>
             </div>
 
-            {/* Main Content */}
             <Tabs defaultValue="students" className="space-y-4">
           <div className="flex items-center justify-between">
             <TabsList>

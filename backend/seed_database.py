@@ -16,9 +16,9 @@ django.setup()
 
 from users.models import User
 from student.models import Student, ProgressLog, PhotosStudent
-from teachers.models import Teacher, ScheduleTeacher, ScheduleException, Appointment
+from teachers.models import Teacher, ScheduleTeacher, ScheduleException, Appointment, TeacherStudents
 from exercises.models import Exercise
-from training.models import Training, Workout, WorkoutExercise
+from training.models import Training, Workout, WorkoutExercise, Program
 from tracking.models import WorkoutSession, ExerciseLog, SetLog
 from diet.models import FoodItem, DietPlan, Meal, MealFoodItem, MealRegistration
 from analytics.models import PersonalRecord, BodyMeasurement, ProgressPhoto
@@ -39,6 +39,7 @@ def clear_database():
     WorkoutExercise.objects.all().delete()
     Workout.objects.all().delete()
     Training.objects.all().delete()
+    Program.objects.all().delete()
     PersonalRecord.objects.all().delete()
     BodyMeasurement.objects.all().delete()
     ProgressPhoto.objects.all().delete()
@@ -144,6 +145,32 @@ def create_users():
     
     print(f"✅ Created {len(users)} users (2 teachers, 3 students)")
     return users
+
+
+def create_teacher_students():
+    """Link students to teachers so trainer dashboards have data"""
+    print("🤝 Linking teachers and students...")
+
+    teachers = list(Teacher.objects.all())
+    students = list(Student.objects.all())
+
+    links = []
+
+    if teachers:
+        primary = teachers[0]
+        for student in students[:2]:
+            link, _ = TeacherStudents.objects.get_or_create(teacher=primary, student=student)
+            links.append(link)
+
+    if len(teachers) > 1:
+        secondary = teachers[1]
+        for student in students[2:]:
+            link, _ = TeacherStudents.objects.get_or_create(teacher=secondary, student=student)
+            links.append(link)
+
+    print(f"✅ Linked {len(links)} teacher-student pairs")
+    return links
+
 
 def create_teacher_schedules():
     """Create teacher schedules"""
@@ -278,25 +305,89 @@ def create_food_items():
     print(f"✅ Created {len(foods)} food items")
     return foods
 
+def create_programs():
+    """Create sample workout programs"""
+    print("📋 Creating workout programs...")
+    
+    teachers = Teacher.objects.all()
+    
+    programs = []
+    
+    # Program 1 - ABC Hypertrophy
+    program1 = Program.objects.create(
+        name='Programa ABC - Hipertrofia',
+        description='Programa de 3 dias focado em hipertrofia muscular. Dividido em Push-Pull-Legs.',
+        teacher=teachers[0],
+        goal='HYP',
+        is_active=True
+    )
+    programs.append(program1)
+    
+    # Program 2 - Upper Lower
+    program2 = Program.objects.create(
+        name='Programa Upper Lower',
+        description='Programa de 4 dias alternando treinos de membros superiores e inferiores.',
+        teacher=teachers[0],
+        goal='STR',
+        is_active=True
+    )
+    programs.append(program2)
+    
+    # Program 3 - Full Body
+    program3 = Program.objects.create(
+        name='Programa Full Body - Iniciante',
+        description='Treino de corpo inteiro 3x por semana, ideal para iniciantes.',
+        teacher=teachers[1],
+        goal='GEN',
+        is_active=True
+    )
+    programs.append(program3)
+    
+    # Program 4 - Weight Loss
+    program4 = Program.objects.create(
+        name='Programa Emagrecimento',
+        description='Combinação de treino de força e cardio para perda de peso sustentável.',
+        teacher=teachers[1],
+        goal='WL',
+        is_active=True
+    )
+    programs.append(program4)
+    
+    # Program 5 - Push Pull Legs
+    program5 = Program.objects.create(
+        name='Programa PPL - Avançado',
+        description='Push-Pull-Legs 6x por semana para atletas avançados.',
+        teacher=teachers[0],
+        goal='HYP',
+        is_active=True
+    )
+    programs.append(program5)
+    
+    print(f"✅ Created {len(programs)} programs")
+    return programs
+
 def create_training_plans():
-    """Create sample training plans with workouts"""
+    """Create sample training plans with workouts linked to programs"""
     print("🏋️ Creating training plans...")
     
     students = Student.objects.all()
     teachers = Teacher.objects.all()
     exercises = list(Exercise.objects.all())
+    programs = Program.objects.all()
     
     trainings = []
     
-    # Training for student 1 - Hypertrophy
+    # Training for student 1 - ABC Hypertrophy Program
     student1 = students[0]
     teacher1 = teachers[0]
+    program1 = programs[0]  # ABC Hypertrophy
     
     training1 = Training.objects.create(
         student=student1,
         teacher=teacher1,
+        program=program1,
         goal='HYP',
-        name='Hipertrofia - ABC',
+        name='ABC - Hipertrofia',
         description='Treino dividido em 3 dias focado em hipertrofia muscular',
         is_active=True
     )
@@ -386,18 +477,149 @@ def create_training_plans():
             rest_time=timedelta(seconds=60)
         )
     
-    # Training for student 2 - Weight Loss
+    # Training for student 2 - Weight Loss Program
     student2 = students[1]
+    program4 = programs[3]  # Weight Loss
     
     training2 = Training.objects.create(
         student=student2,
         teacher=teacher1,
+        program=program4,
         goal='WL',
         name='Emagrecimento - Full Body',
         description='Treino full body 3x por semana focado em emagrecimento',
         is_active=True
     )
     trainings.append(training2)
+    
+    # Training for student 3 - Full Body Beginner
+    if len(students) > 2:
+        student3 = students[2]
+        program3 = programs[2]  # Full Body Beginner
+        
+        training3 = Training.objects.create(
+            student=student3,
+            teacher=teachers[1],
+            program=program3,
+            goal='GEN',
+            name='Full Body - Iniciante',
+            description='Treino de corpo inteiro para iniciantes',
+            is_active=True
+        )
+        trainings.append(training3)
+        
+        # Create Full Body workouts
+        for day_num, day_name in [(1, 'Segunda'), (3, 'Quarta'), (5, 'Sexta')]:
+            workout = Workout.objects.create(
+                training_plan=training3,
+                name=f'Treino Full Body - {day_name}',
+                day_of_week=str(day_num)
+            )
+            
+            # Mix of all muscle groups
+            selected_exercises = [
+                Exercise.objects.filter(muscle_group='Peito').first(),
+                Exercise.objects.filter(muscle_group='Costas').first(),
+                Exercise.objects.filter(muscle_group='Pernas').first(),
+                Exercise.objects.filter(muscle_group='Ombros').first(),
+                Exercise.objects.filter(muscle_group='Abdômen').first(),
+            ]
+            
+            for exercise in selected_exercises:
+                if exercise:
+                    WorkoutExercise.objects.create(
+                        workout=workout,
+                        exercise=exercise,
+                        sets=3,
+                        reps=12,
+                        rest_time=timedelta(seconds=60)
+                    )
+    
+    # Training for student 4 - Upper Lower Program
+    if len(students) > 3:
+        student4 = students[3]
+        program2 = programs[1]  # Upper Lower
+        
+        training4 = Training.objects.create(
+            student=student4,
+            teacher=teacher1,
+            program=program2,
+            goal='STR',
+            name='Upper Lower - Força',
+            description='Treino upper/lower focado em força',
+            is_active=True
+        )
+        trainings.append(training4)
+        
+        # Upper Body Workout 1
+        upper1 = Workout.objects.create(
+            training_plan=training4,
+            name='Treino Upper A',
+            day_of_week='1'  # Monday
+        )
+        
+        upper_exercises1 = list(Exercise.objects.filter(muscle_group__in=['Peito', 'Ombros', 'Tríceps'])[:5])
+        for exercise in upper_exercises1:
+            WorkoutExercise.objects.create(
+                workout=upper1,
+                exercise=exercise,
+                sets=4,
+                reps=8,
+                rest_time=timedelta(seconds=120)
+            )
+        
+        # Lower Body Workout 1
+        lower1 = Workout.objects.create(
+            training_plan=training4,
+            name='Treino Lower A',
+            day_of_week='2'  # Tuesday
+        )
+        
+        lower_exercises = list(Exercise.objects.filter(muscle_group='Pernas')[:5])
+        for exercise in lower_exercises:
+            WorkoutExercise.objects.create(
+                workout=lower1,
+                exercise=exercise,
+                sets=4,
+                reps=10,
+                rest_time=timedelta(seconds=120)
+            )
+        
+        # Upper Body Workout 2
+        upper2 = Workout.objects.create(
+            training_plan=training4,
+            name='Treino Upper B',
+            day_of_week='4'  # Thursday
+        )
+        
+        upper_exercises2 = list(Exercise.objects.filter(muscle_group__in=['Costas', 'Bíceps'])[:5])
+        for exercise in upper_exercises2:
+            WorkoutExercise.objects.create(
+                workout=upper2,
+                exercise=exercise,
+                sets=4,
+                reps=8,
+                rest_time=timedelta(seconds=120)
+            )
+        
+        # Lower Body Workout 2
+        lower2 = Workout.objects.create(
+            training_plan=training4,
+            name='Treino Lower B',
+            day_of_week='5'  # Friday
+        )
+        
+        for exercise in lower_exercises[:4]:
+            WorkoutExercise.objects.create(
+                workout=lower2,
+                exercise=exercise,
+                sets=3,
+                reps=12,
+                rest_time=timedelta(seconds=90)
+            )
+    
+    print(f"✅ Created {len(trainings)} training plans with workouts")
+    return trainings
     
     # Create 3 full body workouts for weight loss
     for day in [1, 3, 5]:  # Monday, Wednesday, Friday
@@ -711,9 +933,11 @@ def main():
     
     # Create data in order
     users = create_users()
+    teacher_student_links = create_teacher_students()
     create_teacher_schedules()
     exercises = create_exercises()
     foods = create_food_items()
+    programs = create_programs()
     trainings = create_training_plans()
     sessions = create_workout_sessions()
     diet_plans = create_diet_plans()
@@ -726,8 +950,10 @@ def main():
     print("="*50)
     print("\n📊 Summary:")
     print(f"   👥 Users: {len(users)}")
+    print(f"   🤝 Teacher-Student Links: {len(teacher_student_links)}")
     print(f"   💪 Exercises: {len(exercises)}")
     print(f"   🍎 Food Items: {len(foods)}")
+    print(f"   📋 Programs: {len(programs)}")
     print(f"   🏋️ Training Plans: {len(trainings)}")
     print(f"   📊 Workout Sessions: {len(sessions)}")
     print(f"   🍽️ Diet Plans: {len(diet_plans)}")

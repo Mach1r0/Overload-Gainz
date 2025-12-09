@@ -2,9 +2,9 @@ from django.shortcuts import render
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .serializers import trainingSerializer, ProgramSerializer, WorkoutSerializer, WorkoutExerciseSerializer
+from .serializers import trainingSerializer, ProgramSerializer, WorkoutSerializer, WorkoutExerciseSerializer, FolderSerializer
 from rest_framework import permissions
-from .models import Training, Program, Workout, WorkoutExercise
+from .models import Training, Program, Workout, WorkoutExercise, Folder
 from django.db.models import Count, Q
 
 class ProgramViewSet(viewsets.ModelViewSet):
@@ -132,3 +132,11 @@ class WorkoutExerciseViewSet(viewsets.ModelViewSet):
         if workout_id:
             queryset = queryset.filter(workout_id=workout_id)
         return queryset
+
+class FolderViewSet(viewsets.ModelViewSet):
+    queryset = Folder.objects.all()
+    serializer_class = FolderSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        return Folder.objects.all()

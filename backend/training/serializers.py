@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Training, Workout, WorkoutExercise, Program
+from .models import Training, Workout, WorkoutExercise, Program, Folder
 from exercises.serializers import ExerciseSerializer
 
 class WorkoutExerciseSerializer(serializers.ModelSerializer):
@@ -80,3 +80,10 @@ class ProgramSerializer(serializers.ModelSerializer):
         if obj.teacher and obj.teacher.user:
             return f"{obj.teacher.user.first_name} {obj.teacher.user.last_name}".strip() or obj.teacher.user.username
         return None
+
+class FolderSerializer(serializers.ModelSerializer):
+    programs = ProgramSerializer(many=True, read_only=True)
+    class Meta:
+        model = Folder
+        fields = ['id', 'name', 'programs']
+        read_only_fields = ['id']

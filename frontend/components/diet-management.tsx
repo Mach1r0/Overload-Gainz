@@ -79,7 +79,6 @@ const [loading, setLoading] = useState(true)
 
   return (
     <div className="space-y-6">
-      {/* Header with Create Button */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Planos de Dieta</h2>
@@ -167,7 +166,6 @@ const [loading, setLoading] = useState(true)
         </div>
       )}
 
-      {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>

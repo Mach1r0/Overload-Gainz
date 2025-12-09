@@ -2,10 +2,24 @@
 
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Dumbbell, Apple, Users, MessageSquare, Settings, TrendingUp, Video, Ruler} from "lucide-react"
+import {
+  Home,
+  Dumbbell,
+  Apple,
+  Users,
+  MessageSquare,
+  Settings,
+  TrendingUp,
+  Ruler,
+  Sparkles,
+  BookOpen,
+  PlaySquare,
+  Activity,
+} from "lucide-react"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 import { authApi } from "@/lib/api/auth"
+import { BrandLogo } from "@/components/brand-logo"
 
 interface SidebarNavProps {
   userType: "trainer" | "student"
@@ -14,11 +28,15 @@ interface SidebarNavProps {
 export function SidebarNav({ userType }: SidebarNavProps) {
   const pathname = usePathname()
   const [userId, setUserId] = useState<string | null>(null)
+  const [userName, setUserName] = useState<string>("")
+  const [userEmail, setUserEmail] = useState<string>("")
 
   useEffect(() => {
     const user = authApi.getUserFromStorage()
     if (user) {
       setUserId(user.id.toString())
+      setUserName(user.first_name || user.username || "")
+      setUserEmail(user.email || "")
     }
   }, [])
 
@@ -30,7 +48,7 @@ export function SidebarNav({ userType }: SidebarNavProps) {
     {
       title: "Dashboard",
       href: `/trainer/${userId}/dashboard`,
-      icon: LayoutDashboard,
+      icon: Home,
     },
     {
       title: "Alunos",
@@ -38,9 +56,9 @@ export function SidebarNav({ userType }: SidebarNavProps) {
       icon: Users,
     },
     {
-      title: "Treinos",
-      href: `/trainer/${userId}/workouts`,
-      icon: Dumbbell,
+      title: "Programas",
+      href: `/trainer/${userId}/programs`,
+      icon: BookOpen,
     },
     {
       title: "Dietas",
@@ -50,25 +68,21 @@ export function SidebarNav({ userType }: SidebarNavProps) {
     {
       title: "Vídeo Aulas",
       href: `/trainer/${userId}/videos`,
-      icon: Video,
+      icon: PlaySquare,
     },
     {
       title: "Assistente IA",
       href: `/trainer/${userId}/ai-assistant`,
       icon: MessageSquare,
     },
-    {
-      title: "Configurações",
-      href: `/trainer/${userId}/settings`,
-      icon: Settings,
-    },
+ 
   ]
 
   const studentLinks = [
     {
       title: "Dashboard",
       href: `/student/${userId}/dashboard`,
-      icon: LayoutDashboard,
+      icon: Home,
     },
     {
       title: "Meus Treinos",
@@ -83,7 +97,7 @@ export function SidebarNav({ userType }: SidebarNavProps) {
     {
       title: "Vídeo Aulas",
       href: `/student/${userId}/videos`,
-      icon: Video,
+      icon: PlaySquare,
     },
     {
       title: "Progresso",
@@ -109,49 +123,51 @@ export function SidebarNav({ userType }: SidebarNavProps) {
     : `/student/${userId}/dashboard`
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-sidebar">
+    <aside className="fixed left-0 top-0 z-40 h-screen w-72 bg-[#0b1424] text-slate-100 border-r border-slate-800/70">
       <div className="flex h-full flex-col">
-        <div className="flex h-16 items-center border-b border-sidebar-border px-6">
+        <div className="flex h-16 items-center justify-between border-b border-slate-800/70 px-4">
           <Link href={dashboardUrl} className="flex items-center gap-2">
-            <Dumbbell className="h-6 w-6 text-primary" />
-            <span className="ml-2 text-lg font-semibold text-sidebar-foreground">Overload Gainz</span>
+            <BrandLogo className="h-10 w-auto" />
           </Link>
+          <span className="rounded-full bg-slate-800/80 px-3 py-1 text-xs font-semibold text-slate-200">{userType === "trainer" ? "Coach" : "Aluno"}</span>
         </div>
 
-        <nav className="flex-1 space-y-1 p-4">
-          {links.map((link) => {
-            const isActive = pathname === link.href || pathname?.startsWith(link.href + "/")
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                )}
-              >
-                <link.icon className="h-5 w-5" />
-                {link.title}
-              </Link>
-            )
-          })}
-        </nav>
+        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+          <div className="space-y-1">
+            <p className="px-2 text-xs uppercase tracking-[0.18em] text-slate-500">Navegação</p>
+            {links.map((link) => {
+              const isActive = pathname === link.href || pathname?.startsWith(link.href + "/")
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    "flex items-center gap-3.5 rounded-xl px-3.5 py-3 text-base font-semibold transition-all",
+                    isActive
+                      ? "bg-gradient-to-r from-sky-700/80 via-indigo-500/70 to-cyan-400/60 text-white shadow-lg shadow-sky-900/25"
+                      : "text-slate-300 hover:text-white hover:bg-slate-800/60"
+                  )}
+                >
+                  <link.icon className="h-6 w-6" />
+                  <span>{link.title}</span>
+                </Link>
+              )
+            })}
+          </div>
 
-        <div className="border-t border-sidebar-border p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
-              {userType === "trainer" ? "PT" : "AL"}
+        
+        </div>
+
+        <div className="border-t border-slate-800/70 p-4">
+          <div className="flex items-center gap-3 rounded-xl bg-slate-800/70 px-3 py-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-sky-700 to-cyan-400 text-white text-sm font-bold">
+              {userName ? userName.charAt(0).toUpperCase() : userType === "trainer" ? "PT" : "AL"}
             </div>
             <div className="flex-1 overflow-hidden">
-              <p className="truncate text-sm font-medium text-sidebar-foreground">
-                {userType === "trainer" ? "Personal Trainer" : "Aluno"}
-              </p>
-              <p className="truncate text-xs text-muted-foreground">
-                {userType === "trainer" ? "trainer@fitpro.com" : "aluno@fitpro.com"}
-              </p>
+              <p className="truncate text-sm font-semibold text-white">{userName || (userType === "trainer" ? "Personal Trainer" : "Aluno")}</p>
+              <p className="truncate text-xs text-slate-400">{userEmail || (userType === "trainer" ? "trainer@fitpro.com" : "aluno@fitpro.com")}</p>
             </div>
+            <Settings className="h-4 w-4 text-slate-400" />
           </div>
         </div>
       </div>

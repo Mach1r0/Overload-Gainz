@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dumbbell } from "lucide-react"
+import { BrandLogo } from "@/components/brand-logo"
 import { authApi } from "@/lib/api/auth"
 
 export default function RegisterPage() {
@@ -156,8 +156,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md space-y-6">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2">
-          <Dumbbell className="h-8 w-8 text-primary" />
-          <span className="text-2xl font-bold">Overload Gainz</span>
+           <BrandLogo className="h-10 w-auto" />
         </div>
 
         <Card>

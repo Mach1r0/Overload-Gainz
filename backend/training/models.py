@@ -1,7 +1,6 @@
 from django.db import models
 
 class Program(models.Model):
-    """Training program that groups multiple trainings (e.g., ABC, Upper/Lower, PPL)"""
     GOAL_CHOICES = [ 
         ('STR', 'Strength'),
         ('HYP', 'Hypertrophy'),
@@ -17,6 +16,7 @@ class Program(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
+    durantion = models.IntegerField(default=4, help_text="Duration of the program in weeks")
     
     def __str__(self):
         return f"{self.name} - {self.get_goal_display()}"
@@ -60,5 +60,14 @@ class WorkoutExercise(models.Model):
     exercise = models.ForeignKey('exercises.Exercise', on_delete=models.CASCADE, related_name='exercise_workouts')
     sets = models.PositiveIntegerField()
     reps = models.PositiveIntegerField()
+    min_reps = models.PositiveIntegerField(blank=True, null=True, help_text="Minimum reps for rep ranges")
+    max_reps = models.PositiveIntegerField(blank=True, null=True, help_text="Maximum reps for rep ranges")
     rest_time = models.DurationField(help_text="Rest time between sets (e.g., 00:01:30 for 1 minute 30 seconds)")
     notes = models.TextField(blank=True, null=True)
+
+class Folder(models.Model):
+   program = models.ForeignKey(Program, on_delete=models.CASCADE, related_name='folders')
+   name = models.CharField(max_length=100)
+
+   def __str__(self):
+        return self.name

@@ -5,7 +5,6 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
   const { studentId, id: trainerId } = await params
   return (
     <div className="min-h-screen bg-background">
-      <NavHeader />
       <main className="container mx-auto px-4 py-8">
         <StudentDetailTabs studentId={studentId} trainerId={trainerId} />
       </main>

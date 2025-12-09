@@ -52,6 +52,12 @@ class TeacherStudentView(viewsets.ModelViewSet):
     serializer_class = TeacherStudentsSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+        teacher = Teacher.objects.filter(user=self.request.user).first()
+        if not teacher:
+            return TeacherStudents.objects.none()
+        return TeacherStudents.objects.filter(teacher=teacher)
+
     def get_teacher(self, request):
         return Teacher.objects.get(user=request.user)
 

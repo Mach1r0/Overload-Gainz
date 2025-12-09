@@ -9,7 +9,7 @@ import { CheckCircle2, XCircle } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { authApi } from "@/lib/api/auth"
-import { apiClient } from "@/lib/api/client"
+import { fetchTeacherStudents } from "@/lib/api/trainer-students"
 
 interface Student {
   id: number
@@ -53,23 +53,16 @@ export function StudentsList() {
     try {
       setLoading(true)
       const user = authApi.getUserFromStorage()
-      
       if (!user) {
         console.error('No user found')
+        setStudents([])
         return
       }
 
-      // Import dynamically to avoid circular dependencies
-      const { getTeacherByUserId, getTeacherStudents } = await import('@/lib/api')
-      
-      // Get teacher profile
-      const teacher = await getTeacherByUserId(user.id)
-      
       // Get teacher's students (evaluation_status is already included)
-      const studentsData = await getTeacherStudents()
-      console.log('Fetched studentsData:', studentsData)
-
-      setStudents(studentsData)
+      const studentsData = await fetchTeacherStudents()
+      console.log('[StudentsList] fetched students:', studentsData?.length ?? 0, studentsData)
+      setStudents(studentsData || [])
     } catch (error: any) {
       console.error('Error fetching students:', error);
       if (error.response) {
