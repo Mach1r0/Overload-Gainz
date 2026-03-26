@@ -71,13 +71,10 @@ class Command(BaseCommand):
                 }
             )
             
-            # Handle images
             images = exercise_data.get('images', [])
             if images:
-                # Clear existing images for this exercise
                 ExerciseImage.objects.filter(exercise=exercise).delete()
                 
-                # Add new images
                 for idx, image_path in enumerate(images):
                     ExerciseImage.objects.create(
                         exercise=exercise,

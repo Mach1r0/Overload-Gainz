@@ -1,0 +1,61 @@
+[tool.poetry]
+name = "overload-gainz"
+version = "0.1.0"
+description = "Plataforma de gestão de treinos e dietas para personal trainers e alunos"
+authors = []
+readme = "README.md"
+
+# Python 3.14 (local) não tem suporte nas libs AI ainda.
+# O lock file deve ser gerado dentro do container (Python 3.11).
+# Execute: docker run --rm -v $(pwd):/app python:3.11-slim \
+#   bash -c "pip install poetry && POETRY_VIRTUALENVS_CREATE=false poetry lock"
+[tool.poetry.dependencies]
+python = ">=3.11,<3.14"
+
+# Django
+Django = "5.2.7"
+djangorestframework = "3.16.1"
+djangorestframework-simplejwt = "5.5.1"
+django-cors-headers = "4.9.0"
+drf-spectacular = "0.27.2"
+
+# Image / Utilities
+Pillow = "11.3.0"
+PyJWT = "2.10.1"
+python-dateutil = "2.9.0.post0"
+requests = "2.32.3"
+holidays = "0.83"
+python-dotenv = "1.0.1"
+
+# Celery + RabbitMQ
+celery = { version = "5.3.6", extras = ["redis"] }
+django-celery-beat = ">=2.9.0"
+kombu = "5.3.4"
+
+# Redis cache
+redis = "5.0.1"
+django-redis = "5.4.0"
+
+# PostgreSQL (produção)
+psycopg2-binary = "2.9.9"
+
+# AI – CrewAI + LangChain
+crewai = ">=0.80.0"
+langchain-openai = ">=0.2.0"
+langchain = ">=0.3.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+pytest-django = "^4.8"
+ipython = "^8.0"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "core.settings"
+python_files = ["tests.py", "test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

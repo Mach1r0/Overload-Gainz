@@ -10,8 +10,8 @@ class ExerciseImageInline(admin.TabularInline):
 
 @admin.register(Exercise)
 class ExerciseAdmin(admin.ModelAdmin):
-    list_display = ['name', 'level', 'category', 'equipment', 'muscle_group', 'created_at']
-    list_filter = ['level', 'category', 'equipment', 'force', 'mechanic', 'muscle_group', 'created_at']
+    list_display = ['name', 'level', 'category', 'equipment', 'primary_muscles', 'created_at']
+    list_filter = ['level', 'category', 'equipment', 'force', 'mechanic', 'created_at']
     search_fields = ['name', 'description', 'primary_muscles', 'secondary_muscles']
     inlines = [ExerciseImageInline]
     fieldsets = (
@@ -22,7 +22,7 @@ class ExerciseAdmin(admin.ModelAdmin):
             'fields': ('level', 'category', 'force', 'mechanic', 'equipment')
         }),
         ('Muscles', {
-            'fields': ('muscle_group', 'primary_muscles', 'secondary_muscles')
+            'fields': ('primary_muscles', 'secondary_muscles')
         }),
         ('Media', {
             'fields': ('video_url', 'image')
@@ -33,5 +33,5 @@ class ExerciseAdmin(admin.ModelAdmin):
 @admin.register(ExerciseImage)
 class ExerciseImageAdmin(admin.ModelAdmin):
     list_display = ['exercise', 'image_path', 'order']
-    list_filter = ['exercise__muscle_group']
+    list_filter = ['exercise__primary_muscles']
     search_fields = ['exercise__name']

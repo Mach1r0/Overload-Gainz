@@ -84,7 +84,6 @@ export default function WorkoutPage() {
         if (session && session.exercise_logs) {
           setWorkoutSession(session)
           
-          // Transform exercise logs into workout exercises with empty sets
           const transformedExercises: Exercise[] = session.exercise_logs.map((log: any) => {
             const targetSets = log.workout_exercise?.sets || 3
             const targetReps = log.workout_exercise?.reps || 12

@@ -11,7 +11,7 @@ import { Plus, Search } from "lucide-react"
 interface Routine {
   id: number
   name: string
-  programName: string
+  programName?: string
   exercises: { id: number; name: string; sets: number; muscleGroup: string }[]
 }
 

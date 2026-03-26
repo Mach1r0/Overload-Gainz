@@ -7,7 +7,47 @@ class WorkoutExerciseSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = WorkoutExercise
-        fields = ['id', 'workout', 'exercise', 'sets', 'reps', 'rest_time', 'notes']
+        fields = ['id', 'workout', 'exercise', 'sets', 'reps', 'min_reps', 'max_reps', 'rest_time', 'notes']
+        read_only_fields = ['id', 'exercise']
+        extra_kwargs = {
+            'workout': {'required': True},
+            'sets': {'required': True},
+            'reps': {'required': True},
+        }
+    
+    def to_internal_value(self, data):
+        exercise_id = None
+        if 'exercise' in data and isinstance(data['exercise'], int):
+            exercise_id = data['exercise']
+            data = data.copy()
+            data.pop('exercise')
+        
+        internal_value = super().to_internal_value(data)
+        
+        if exercise_id is not None:
+            internal_value['exercise_id'] = exercise_id
+        
+        return internal_value
+    
+    def create(self, validated_data):
+        exercise_id = validated_data.pop('exercise_id', None)
+        if exercise_id:
+            from exercises.models import Exercise
+            try:
+                validated_data['exercise'] = Exercise.objects.get(id=exercise_id)
+            except Exercise.DoesNotExist:
+                raise serializers.ValidationError({'exercise': f'Exercise with id {exercise_id} does not exist'})
+        return super().create(validated_data)
+    
+    def update(self, instance, validated_data):
+        exercise_id = validated_data.pop('exercise_id', None)
+        if exercise_id:
+            from exercises.models import Exercise
+            try:
+                validated_data['exercise'] = Exercise.objects.get(id=exercise_id)
+            except Exercise.DoesNotExist:
+                raise serializers.ValidationError({'exercise': f'Exercise with id {exercise_id} does not exist'})
+        return super().update(instance, validated_data)
 
 class WorkoutSerializer(serializers.ModelSerializer):
     exercises = WorkoutExerciseSerializer(source='workout_exercises', many=True, read_only=True)
@@ -69,6 +109,7 @@ class ProgramSerializer(serializers.ModelSerializer):
             'teacher_name',
             'goal',
             'category',
+            'folder',
             'created_at',
             'updated_at',
             'is_active',
@@ -85,5 +126,5 @@ class FolderSerializer(serializers.ModelSerializer):
     programs = ProgramSerializer(many=True, read_only=True)
     class Meta:
         model = Folder
-        fields = ['id', 'name', 'programs']
-        read_only_fields = ['id']
+        fields = ['id', 'name', 'teacher', 'created_at', 'programs']
+        read_only_fields = ['id', 'created_at']

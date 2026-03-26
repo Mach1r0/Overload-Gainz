@@ -8,30 +8,29 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
+import { authApi } from "@/lib/api/auth"
 
 export default function ResetPasswordPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const [email, setEmail] = useState("")
-  const [code, setCode] = useState("")
+  const [uid, setUid] = useState("")
+  const [token, setToken] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
-    // Get email and code from sessionStorage
-    const storedEmail = sessionStorage.getItem("reset_email")
-    const storedCode = sessionStorage.getItem("reset_code")
-    
-    if (!storedEmail || !storedCode) {
-      // If no email or code found, redirect back to email step
+    const storedUid = sessionStorage.getItem("reset_uid")
+    const storedToken = sessionStorage.getItem("reset_token")
+
+    if (!storedUid || !storedToken) {
       router.push("/auth/forgot-password")
       return
     }
-    
-    setEmail(storedEmail)
-    setCode(storedCode)
+
+    setUid(storedUid)
+    setToken(storedToken)
   }, [router])
 
   const handlePasswordReset = async (e: React.FormEvent) => {
@@ -58,15 +57,11 @@ export default function ResetPasswordPage() {
     setIsLoading(true)
 
     try {
-      // TODO: Replace with actual API call to reset password
-      // await resetPassword(email, code, newPassword)
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await authApi.confirmPasswordReset({ uid, token, new_password: newPassword })
 
-      // Clear sessionStorage
       sessionStorage.removeItem("reset_email")
-      sessionStorage.removeItem("reset_code")
+      sessionStorage.removeItem("reset_uid")
+      sessionStorage.removeItem("reset_token")
 
       toast({
         title: "Senha redefinida!",
@@ -75,14 +70,13 @@ export default function ResetPasswordPage() {
 
       setSuccess(true)
 
-      // Redirect to login after 2 seconds
       setTimeout(() => {
         router.push("/login")
       }, 2000)
-    } catch (error) {
+    } catch {
       toast({
         title: "Erro",
-        description: "Não foi possível redefinir a senha. Tente novamente.",
+        description: "Link inválido ou expirado. Solicite uma nova redefinição.",
         variant: "destructive",
       })
     } finally {
@@ -90,8 +84,8 @@ export default function ResetPasswordPage() {
     }
   }
 
-  if (!email || !code) {
-    return null // Will redirect in useEffect
+  if (!uid || !token) {
+    return null
   }
 
   return (
@@ -100,7 +94,7 @@ export default function ResetPasswordPage() {
         {/* Back Button */}
         {!success && (
           <Link
-            href="/auth/forgot-password/verify"
+            href="/auth/forgot-password"
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8"
           >
             <ArrowLeft className="w-4 h-4" />

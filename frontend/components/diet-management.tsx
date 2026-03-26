@@ -10,7 +10,7 @@ import { DietForm } from "@/components/diet-form"
 import { DietDetails } from "@/components/diet-details"
 import Link from "next/link"
 import { authApi } from "@/lib/api/auth"
-import { getStudentDietPlans } from "@/lib/api/diets"
+import { getStudentDiets } from "@/lib/api/diets"
 
 interface DietPlan {
   id: number
@@ -34,7 +34,7 @@ const goalColors = {
   MAINT: "bg-blue-100 text-blue-800",
 }
 
-export function DietManagement({ studentId, userId }: { studentId: string; userId: string }) {
+export function DietManagement({ studentId, userId }: { studentId: string; userId: number }) {
   const [diets, setDiets] = useState<DietPlan[]>([])
 const [loading, setLoading] = useState(true)
   const [selectedDiet, setSelectedDiet] = useState<DietPlan | null>(null)
@@ -47,7 +47,7 @@ const [loading, setLoading] = useState(true)
     const fetchDiets = async () => {
       try {
         setLoading(true)
-        const dietsData = await getStudentDietPlans(userId)
+        const dietsData = await getStudentDiets(userId)
         const dietsWithCount = dietsData.map((diet: any) => ({
           ...diet,
           meals_count: diet.meals?.length || 0,

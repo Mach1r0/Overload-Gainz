@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
+import { authApi } from "@/lib/api/auth"
 
 export default function ForgotPasswordPage() {
   const router = useRouter()
@@ -20,26 +21,22 @@ export default function ForgotPasswordPage() {
     setIsLoading(true)
 
     try {
-      // TODO: Replace with actual API call to send reset email
-      // await sendPasswordResetEmail(email)
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const data = await authApi.requestPasswordReset(email)
 
-      // Store email in sessionStorage to use in next step
       sessionStorage.setItem("reset_email", email)
+      sessionStorage.setItem("reset_uid", data.uid ?? "")
+      sessionStorage.setItem("reset_token", data.token ?? "")
 
       toast({
-        title: "Email enviado!",
-        description: "Verifique sua caixa de entrada para o código de verificação",
+        title: "Solicitação enviada!",
+        description: "Prossiga para redefinir sua senha.",
       })
 
-      // Navigate to code verification page
-      router.push("/auth/forgot-password/verify")
-    } catch (error) {
+      router.push("/auth/forgot-password/reset")
+    } catch {
       toast({
         title: "Erro",
-        description: "Não foi possível enviar o email. Tente novamente.",
+        description: "Não foi possível processar a solicitação. Tente novamente.",
         variant: "destructive",
       })
     } finally {
@@ -67,7 +64,7 @@ export default function ForgotPasswordPage() {
               </div>
             </div>
             <CardTitle className="text-2xl">Esqueceu sua senha?</CardTitle>
-            <CardDescription>Digite seu email para receber um código de redefinição</CardDescription>
+            <CardDescription>Digite seu email para receber as instruções de redefinição</CardDescription>
           </CardHeader>
 
           <CardContent>
@@ -88,7 +85,7 @@ export default function ForgotPasswordPage() {
               </div>
 
               <Button type="submit" disabled={isLoading || !email} className="w-full">
-                {isLoading ? "Enviando..." : "Enviar código"}
+                {isLoading ? "Enviando..." : "Redefinir senha"}
               </Button>
 
               <div className="text-center text-sm">

@@ -17,7 +17,6 @@ export default function EditStudentPage({ params }: { params: { id: string, stud
 
   return (
     <div className="min-h-screen bg-background">
-      <NavHeader />
       <main className="container mx-auto px-4 py-8">
         <Link
           href={`/trainer/${params.id}/students/${params.studentId}`}

@@ -12,6 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ArrowLeft, Plus, MoreVertical, Check, Users } from "lucide-react"
 import { AddRoutineModal } from "@/components/add-routine-modal"
+import { RoutineStudentsModal } from "@/components/routine-students-modal"
+import { AddStudentsToProgramModal } from "@/components/add-students-to-program-modal"
+import { MuscleRadarChart } from "@/components/muscle-radar-chart"
 import Link from "next/link"
 import { apiClient } from "@/lib/api/client"
 import { authApi } from "@/lib/api/auth"
@@ -27,6 +30,7 @@ interface Routine {
   id: number
   name: string
   exercises: Exercise[]
+  programName?: string
 }
 
 const muscleGroups = [
@@ -66,24 +70,28 @@ export default function EditProgramPage({
   const [programNote, setProgramNote] = useState("")
   const [routines, setRoutines] = useState<Routine[]>([])
   const [isRoutineModalOpen, setIsRoutineModalOpen] = useState(false)
+  const [isStudentsModalOpen, setIsStudentsModalOpen] = useState(false)
+  const [selectedRoutine, setSelectedRoutine] = useState<Routine | null>(null)
+  const [students, setStudents] = useState<any[]>([])
+  const [loadingStudents, setLoadingStudents] = useState(true)
+  const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false)
+  const [muscleDistribution, setMuscleDistribution] = useState<Record<string, number>>({})
 
   useEffect(() => {
     const fetchProgramData = async () => {
       try {
-        const user = authApi.getUserFromStorage()
-        if (!user) {
-          setLoading(false)
-          return
-        }
+      const user = authApi.getUserFromStorage()
+      if (!user) {
+        setLoading(false)
+        return
+      }
 
-        const programResponse = await apiClient.get(`/programs/${programId}/`)
-        const program = programResponse.data
+      const programResponse = await apiClient.get(`/training/programs/${programId}/`)
+      const program = programResponse.data
 
-        setProgramTitle(program.name)
-        setProgramNote(program.description || "")
-        setProgramDuration("unlimited")
-
-        // Extract routines from trainings
+      setProgramTitle(program.name)
+      setProgramNote(program.description || "")
+      setProgramDuration("unlimited")        
         const routinesMap = new Map<
           string,
           { id: number; name: string; exercises: any[] }
@@ -97,9 +105,9 @@ export default function EditProgramPage({
                   const exercises =
                     workout.exercises?.map((ex: any) => ({
                       id: ex.id,
-                      name: ex.name || "",
+                      name: ex.exercise?.name || "",
                       sets: ex.sets || 1,
-                      muscleGroup: ex.exercise?.muscle_group || "Outro",
+                      muscleGroup: ex.exercise?.primary_muscles || "Outro",
                     })) || []
 
                   routinesMap.set(workout.name, {
@@ -124,13 +132,36 @@ export default function EditProgramPage({
     fetchProgramData()
   }, [programId])
 
-  const addRoutine = () => {
-    const newRoutine: Routine = {
-      id: Date.now(),
-      name: "Rotina Sem Título",
-      exercises: [],
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        setLoadingStudents(true)
+        const response = await apiClient.get(`/training/trainings/all_students_rotine/?routine_id=${programId}`)
+        setStudents(response.data || [])
+      } catch (error) {
+        console.error("Erro ao buscar alunos:", error)
+      } finally {
+        setLoadingStudents(false)
+      }
     }
-    setRoutines([...routines, newRoutine])
+
+    const fetchMuscleDistribution = async () => {
+      try {
+        const response = await apiClient.get(`/training/programs/muscles_group_by_programs/?program_id=${programId}`)
+        setMuscleDistribution(response.data.muscle_distribution || {})
+      } catch (error) {
+        console.error("Erro ao buscar distribuição muscular:", error)
+      }
+    }
+
+    if (programId) {
+      fetchStudents()
+      fetchMuscleDistribution()
+    }
+  }, [programId])
+
+  const addRoutine = () => {
+    router.push(`/trainer/${id}/programs/${programId}/routine/new`)
   }
 
   const updateRoutineName = (routineId: number, name: string) => {
@@ -160,6 +191,14 @@ export default function EditProgramPage({
   }
 
   const getMuscleGroupCounts = () => {
+    // Usar dados do backend se disponível, caso contrário calcular localmente
+    if (Object.keys(muscleDistribution).length > 0) {
+      const counts: Record<string, number> = {}
+      muscleGroups.forEach((mg) => (counts[mg] = Math.round(muscleDistribution[mg] || 0)))
+      return counts
+    }
+
+    // Fallback: calcular localmente se backend não retornou dados
     const counts: Record<string, number> = {}
     muscleGroups.forEach((mg) => (counts[mg] = 0))
 
@@ -176,7 +215,6 @@ export default function EditProgramPage({
 
   const handleSave = async () => {
     setSaving(true)
-    // TODO: Save to API
     await new Promise((resolve) => setTimeout(resolve, 1000))
     setSaving(false)
     router.push(`/trainer/${id}/programs`)
@@ -189,6 +227,32 @@ export default function EditProgramPage({
       exercises: r.exercises.map((e: any) => ({ ...e, id: Date.now() + e.id })),
     }))
     setRoutines([...routines, ...newRoutines])
+  }
+
+  const handleManageStudents = (routine: Routine) => {
+    setSelectedRoutine(routine)
+    setIsStudentsModalOpen(true)
+  }
+
+  const handleRemoveStudent = async (studentId: number) => {
+    try {
+      // Remove student from the program
+      await apiClient.delete(`/training/trainings/remove_student_from_routine/?routine_id=${programId}&student_id=${studentId}`)
+      
+      // Update local state
+      setStudents(students.filter(s => s.id !== studentId))
+    } catch (error) {
+      console.error("Erro ao remover aluno:", error)
+      alert("Erro ao remover aluno. Tente novamente.")
+    }
+  }
+
+  const handleAddStudents = () => {
+    setIsAddStudentModalOpen(true)
+  }
+
+  const handleStudentsAdded = (newStudents: any[]) => {
+    setStudents([...students, ...newStudents])
   }
 
   const muscleGroupCounts = getMuscleGroupCounts()
@@ -231,7 +295,6 @@ export default function EditProgramPage({
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             <div className="space-y-4">
               <div className="space-y-2">
@@ -272,7 +335,6 @@ export default function EditProgramPage({
               </div>
             </div>
 
-            {/* Routines Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -330,6 +392,9 @@ export default function EditProgramPage({
                             <DropdownMenuItem asChild>
                               <Link href={`/trainer/${id}/programs/${programId}/routine/${encodeURIComponent(routine.name)}`}>Editar Exercícios</Link>
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleManageStudents(routine)}>
+                              Gerenciar Alunos
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => duplicateRoutine(routine)}>Duplicar</DropdownMenuItem>
                             <DropdownMenuItem className="text-destructive" onClick={() => deleteRoutine(routine.id)}>
                               Excluir
@@ -353,8 +418,63 @@ export default function EditProgramPage({
             </div>
           </div>
 
-          {/* Summary Sidebar */}
           <div className="space-y-6">
+            {/* Seção de Alunos - Movida para cima */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    <h3 className="font-semibold">Alunos no Programa</h3>
+                  </div>
+                  {!loadingStudents && (
+                    <span className="text-sm text-muted-foreground bg-muted px-2 py-1 rounded">
+                      {students.length}
+                    </span>
+                  )}
+                </div>
+
+                {loadingStudents ? (
+                  <p className="text-sm text-muted-foreground">Carregando alunos...</p>
+                ) : students.length === 0 ? (
+                  <div className="text-center py-6">
+                    <p className="text-sm text-muted-foreground mb-3">Nenhum aluno atribuído a este programa</p>
+                    <Button size="sm" variant="outline" onClick={handleAddStudents}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Adicionar Aluno
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {students.map((student) => (
+                      <div key={student.id} className="flex items-center justify-between p-3 bg-muted rounded-md hover:bg-muted/80 transition-colors">
+                        <div>
+                          <p className="text-sm font-medium">
+                            {student.first_name} {student.last_name}
+                          </p>
+                          {student.user && (
+                            <p className="text-xs text-muted-foreground">@{student.user.username}</p>
+                          )}
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleRemoveStudent(student.id)}
+                        >
+                          Remover
+                        </Button>
+                      </div>
+                    ))}
+                    <Button size="sm" variant="outline" className="w-full mt-2" onClick={handleAddStudents}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Adicionar Mais Alunos
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             <Card>
               <CardContent className="p-6">
                 <h3 className="font-semibold mb-4">Resumo</h3>
@@ -373,38 +493,7 @@ export default function EditProgramPage({
                 <div className="mt-6">
                   <h4 className="font-medium mb-3">Distribuição Muscular</h4>
                   <div className="aspect-square bg-muted rounded-lg flex items-center justify-center mb-4">
-                    <div className="text-center text-muted-foreground text-sm">
-                      <svg
-                        viewBox="0 0 200 200"
-                        className="w-32 h-32 mx-auto"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1"
-                      >
-                        <polygon
-                          points="100,20 170,60 170,140 100,180 30,140 30,60"
-                          className="fill-primary/10 stroke-primary"
-                        />
-                        <text x="100" y="15" textAnchor="middle" className="text-xs fill-current">
-                          Core
-                        </text>
-                        <text x="175" y="55" textAnchor="start" className="text-xs fill-current">
-                          Ombros
-                        </text>
-                        <text x="175" y="145" textAnchor="start" className="text-xs fill-current">
-                          Braços
-                        </text>
-                        <text x="100" y="195" textAnchor="middle" className="text-xs fill-current">
-                          Pernas
-                        </text>
-                        <text x="25" y="145" textAnchor="end" className="text-xs fill-current">
-                          Costas
-                        </text>
-                        <text x="25" y="55" textAnchor="end" className="text-xs fill-current">
-                          Peito
-                        </text>
-                      </svg>
-                    </div>
+                    <MuscleRadarChart muscleGroupCounts={muscleGroupCounts} />
                   </div>
                 </div>
 
@@ -438,6 +527,24 @@ export default function EditProgramPage({
           onCreateNew={addRoutine}
           onImportRoutines={handleImportRoutines}
           existingRoutines={routines}
+        />
+
+        {selectedRoutine && (
+          <RoutineStudentsModal
+            open={isStudentsModalOpen}
+            onOpenChange={setIsStudentsModalOpen}
+            routineId={selectedRoutine.id}
+            routineName={selectedRoutine.name}
+            programId={Number(programId)}
+          />
+        )}
+
+        <AddStudentsToProgramModal
+          open={isAddStudentModalOpen}
+          onOpenChange={setIsAddStudentModalOpen}
+          programId={Number(programId)}
+          currentStudents={students}
+          onStudentsAdded={handleStudentsAdded}
         />
       </main>
     </div>

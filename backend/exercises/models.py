@@ -72,7 +72,6 @@ class Exercise(models.Model):
     equipment = models.CharField(max_length=50, choices=EQUIPMENT_CHOICES, blank=True, null=True)
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='strength')
     
-    muscle_group = models.CharField(max_length=100)  # Deprecated, use primary_muscles instead
     primary_muscles = models.CharField(max_length=255, default='general', help_text="Comma-separated list of primary muscles")
     secondary_muscles = models.CharField(max_length=255, blank=True, default='', help_text="Comma-separated list of secondary muscles")
     

@@ -120,21 +120,35 @@ export function ExerciseLibrarySidebar({
               <button
                 key={ex.id}
                 onClick={() => onSelectExercise(ex)}
-                className="w-full px-3 py-2 text-left hover:bg-accent/50 transition-colors"
+                className="w-full px-3 py-2 text-left hover:bg-accent/50 transition-colors flex gap-3"
               >
-                <p className="font-medium text-sm text-foreground">{ex.name}</p>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {ex.equipment && (
-                    <Badge variant="outline" className="text-xs">
-                      {ex.equipment}
-                    </Badge>
-                  )}
-                  {(ex.primary_muscles_list || ex.primaryMuscles || [ex.muscle_group].filter(Boolean))
-                    .map((muscle: string, idx: number) => (
-                      <Badge key={`${muscle}-${idx}`} variant="secondary" className="text-xs">
-                        {muscle}
+                {ex.image && (
+                  <div className="flex-shrink-0 w-16 h-16 bg-muted rounded overflow-hidden">
+                    <img 
+                      src={ex.image} 
+                      alt={ex.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none'
+                      }}
+                    />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <p className="font-medium text-sm text-foreground">{ex.name}</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {ex.equipment && (
+                      <Badge variant="outline" className="text-xs">
+                        {ex.equipment}
                       </Badge>
-                    ))}
+                    )}
+                    {(ex.primary_muscles_list || ex.primaryMuscles || [ex.muscle_group].filter(Boolean))
+                      .map((muscle: string, idx: number) => (
+                        <Badge key={`${muscle}-${idx}`} variant="secondary" className="text-xs">
+                          {muscle}
+                        </Badge>
+                      ))}
+                  </div>
                 </div>
               </button>
             ))}

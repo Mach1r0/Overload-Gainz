@@ -8,11 +8,16 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Plus, Search, Folder, MoreVertical, ChevronDown, ChevronRight, FolderPlus } from "lucide-react"
+import { Plus, Search, Folder, MoreVertical, ChevronDown, ChevronRight, FolderPlus, Trash2, Copy, Loader2, FolderInput } from "lucide-react"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
 import Link from "next/link"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { apiClient } from "@/lib/api/client"
 import { authApi } from "@/lib/api/auth"
+import { getFoldersByTeacher, createFolder, updateFolder, deleteFolder, changeProgramFolder } from "@/lib/api/training"
 
 interface Routine {
   id: number
@@ -41,17 +46,31 @@ interface ProgramFolder {
 
 export default function ProgramsPage() {
   const params = useParams()
+  const router = useRouter()
   const trainerId = params.id as string
   const [searchQuery, setSearchQuery] = useState("")
   const [loading, setLoading] = useState(true)
-  const [folders, setFolders] = useState<ProgramFolder[]>([
-    {
-      id: 1,
-      name: "Meus Programas",
-      isOpen: true,
-      programs: [],
-    },
-  ])
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [programToDelete, setProgramToDelete] = useState<Program | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isDuplicating, setIsDuplicating] = useState(false)
+  const [folders, setFolders] = useState<ProgramFolder[]>([])
+  const [teacherIdState, setTeacherIdState] = useState<number | null>(null)
+  
+  // Folder management states
+  const [folderDialogOpen, setFolderDialogOpen] = useState(false)
+  const [folderToEdit, setFolderToEdit] = useState<ProgramFolder | null>(null)
+  const [folderName, setFolderName] = useState("")
+  const [isSavingFolder, setIsSavingFolder] = useState(false)
+  const [deleteFolderDialogOpen, setDeleteFolderDialogOpen] = useState(false)
+  const [folderToDelete, setFolderToDelete] = useState<ProgramFolder | null>(null)
+  const [isDeletingFolder, setIsDeletingFolder] = useState(false)
+  
+  // Move program to folder states
+  const [moveFolderDialogOpen, setMoveFolderDialogOpen] = useState(false)
+  const [programToMove, setProgramToMove] = useState<Program | null>(null)
+  const [selectedMoveFolder, setSelectedMoveFolder] = useState<string>("none")
+  const [isMovingFolder, setIsMovingFolder] = useState(false)
 
   useEffect(() => {
     fetchPrograms()
@@ -74,53 +93,55 @@ export default function ProgramsPage() {
         setLoading(false)
         return
       }
+      
+      setTeacherIdState(teacher.id)
 
-      // Get programs for this teacher
-      const programsResponse = await apiClient.get(`/programs/?teacher=${teacher.id}`)
-      const programs = programsResponse.data
+      // Get folders with programs from the new endpoint
+      const foldersData = await getFoldersByTeacher(teacher.id)
 
-      // Transform programs with trainings data
-      const programsWithRoutines = programs.map((program: any) => {
-        // Get unique workout names from all trainings linked to this program
-        const routinesMap = new Map<string, { id: number; name: string; exercises_count: number }>()
-        
-        if (program.trainings && program.trainings.length > 0) {
-          program.trainings.forEach((training: any) => {
-            if (training.workouts) {
-              training.workouts.forEach((workout: any) => {
-                if (!routinesMap.has(workout.name)) {
-                  routinesMap.set(workout.name, {
-                    id: workout.id,
-                    name: workout.name,
-                    exercises_count: workout.exercises?.length || 0,
-                  })
-                }
-              })
-            }
-          })
-        }
+      // Transform folders data
+      const transformedFolders = foldersData.map((folder: any) => {
+        const programsWithRoutines = folder.programs.map((program: any) => {
+          const routinesMap = new Map<string, { id: number; name: string; exercises_count: number }>()
+          
+          if (program.trainings && program.trainings.length > 0) {
+            program.trainings.forEach((training: any) => {
+              if (training.workouts) {
+                training.workouts.forEach((workout: any) => {
+                  if (!routinesMap.has(workout.name)) {
+                    routinesMap.set(workout.name, {
+                      id: workout.id,
+                      name: workout.name,
+                      exercises_count: workout.exercises?.length || 0,
+                    })
+                  }
+                })
+              }
+            })
+          }
+
+          return {
+            id: program.id,
+            name: program.name,
+            description: program.description || "",
+            goal: program.goal,
+            category: program.category || "",
+            routines: Array.from(routinesMap.values()),
+            students_count: program.trainings?.length || 0,
+            created_at: program.created_at,
+            updated_at: program.updated_at,
+          }
+        })
 
         return {
-          id: program.id,
-          name: program.name,
-          description: program.description || "",
-          goal: program.goal,
-          category: program.category || "",
-          routines: Array.from(routinesMap.values()),
-          students_count: program.trainings?.length || 0,
-          created_at: program.created_at,
-          updated_at: program.updated_at,
+          id: folder.id,
+          name: folder.name,
+          programs: programsWithRoutines,
+          isOpen: true,
         }
       })
 
-      setFolders([
-        {
-          id: 1,
-          name: "Meus Programas",
-          isOpen: true,
-          programs: programsWithRoutines,
-        },
-      ])
+      setFolders(transformedFolders)
     } catch (error) {
       console.error("Erro ao buscar programas:", error)
     } finally {
@@ -130,6 +151,163 @@ export default function ProgramsPage() {
 
   const toggleFolder = (folderId: number) => {
     setFolders(folders.map((f) => (f.id === folderId ? { ...f, isOpen: !f.isOpen } : f)))
+  }
+
+  const handleDuplicateProgram = async (program: Program) => {
+    setIsDuplicating(true)
+    try {
+      const response = await apiClient.post(`/training/programs/${program.id}/duplicate/`)
+      const newProgram = response.data
+      
+      // Add the new program to the folders list
+      setFolders(prevFolders => 
+        prevFolders.map(folder => ({
+          ...folder,
+          programs: [...folder.programs, {
+            id: newProgram.id,
+            name: newProgram.name,
+            description: newProgram.description || "",
+            goal: newProgram.goal,
+            category: newProgram.category || "",
+            routines: [],
+            students_count: 0,
+            created_at: newProgram.created_at,
+            updated_at: newProgram.updated_at,
+          }]
+        }))
+      )
+    } catch (error) {
+      console.error("Erro ao duplicar programa:", error)
+      alert("Erro ao duplicar o programa. Tente novamente.")
+    } finally {
+      setIsDuplicating(false)
+    }
+  }
+
+  const handleDeleteProgram = async () => {
+    if (!programToDelete) return
+    
+    setIsDeleting(true)
+    try {
+      await apiClient.delete(`/training/programs/${programToDelete.id}/`)
+      
+      // Remove the program from the folders list
+      setFolders(prevFolders => 
+        prevFolders.map(folder => ({
+          ...folder,
+          programs: folder.programs.filter(p => p.id !== programToDelete.id)
+        }))
+      )
+      
+      setDeleteDialogOpen(false)
+      setProgramToDelete(null)
+    } catch (error) {
+      console.error("Erro ao excluir programa:", error)
+      alert("Erro ao excluir o programa. Tente novamente.")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  // Folder management functions
+  const handleCreateFolder = () => {
+    setFolderToEdit(null)
+    setFolderName("")
+    setFolderDialogOpen(true)
+  }
+
+  const handleEditFolder = (folder: ProgramFolder) => {
+    setFolderToEdit(folder)
+    setFolderName(folder.name)
+    setFolderDialogOpen(true)
+  }
+
+  const handleSaveFolder = async () => {
+    if (!folderName.trim() || !teacherIdState) return
+    
+    setIsSavingFolder(true)
+    try {
+      if (folderToEdit) {
+        // Update existing folder
+        const updatedFolder = await updateFolder(folderToEdit.id, folderName)
+        setFolders(prevFolders =>
+          prevFolders.map(f => f.id === folderToEdit.id ? { ...f, name: updatedFolder.name } : f)
+        )
+      } else {
+        // Create new folder
+        const newFolder = await createFolder(teacherIdState, folderName)
+        setFolders(prevFolders => [
+          ...prevFolders,
+          {
+            id: newFolder.id,
+            name: newFolder.name,
+            programs: [],
+            isOpen: true,
+          }
+        ])
+      }
+      
+      setFolderDialogOpen(false)
+      setFolderName("")
+      setFolderToEdit(null)
+    } catch (error) {
+      console.error("Erro ao salvar pasta:", error)
+      alert("Erro ao salvar a pasta. Tente novamente.")
+    } finally {
+      setIsSavingFolder(false)
+    }
+  }
+
+  const handleDeleteFolderConfirm = (folder: ProgramFolder) => {
+    setFolderToDelete(folder)
+    setDeleteFolderDialogOpen(true)
+  }
+
+  const handleDeleteFolder = async () => {
+    if (!folderToDelete) return
+    
+    setIsDeletingFolder(true)
+    try {
+      await deleteFolder(folderToDelete.id)
+      
+      setFolders(prevFolders => prevFolders.filter(f => f.id !== folderToDelete.id))
+      
+      setDeleteFolderDialogOpen(false)
+      setFolderToDelete(null)
+    } catch (error) {
+      console.error("Erro ao excluir pasta:", error)
+      alert("Erro ao excluir a pasta. Tente novamente.")
+    } finally {
+      setIsDeletingFolder(false)
+    }
+  }
+
+  // Move program to folder functions
+  const handleMoveProgramToFolder = (program: Program) => {
+    setProgramToMove(program)
+    setSelectedMoveFolder("none")
+    setMoveFolderDialogOpen(true)
+  }
+
+  const handleConfirmMoveFolder = async () => {
+    if (!programToMove) return
+    
+    setIsMovingFolder(true)
+    try {
+      const folderId = selectedMoveFolder === "none" ? null : parseInt(selectedMoveFolder)
+      await changeProgramFolder(programToMove.id, folderId)
+      
+      // Refresh the programs list
+      await fetchPrograms()
+      
+      setMoveFolderDialogOpen(false)
+      setProgramToMove(null)
+    } catch (error) {
+      console.error("Erro ao mover programa:", error)
+      alert("Erro ao mover o programa. Tente novamente.")
+    } finally {
+      setIsMovingFolder(false)
+    }
   }
 
   const filteredFolders = folders.map((folder) => ({
@@ -166,23 +344,12 @@ export default function ProgramsPage() {
             </Link>
           </Button>
 
-          <Button variant="outline" size="lg" className="flex items-center gap-2">
+          <Button variant="outline" size="lg" className="flex items-center gap-2" onClick={handleCreateFolder}>
             <FolderPlus className="h-5 w-5" />
             Nova Pasta
           </Button>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="lg" className="flex items-center gap-2">
-                <MoreVertical className="h-5 w-5" />
-                Mais Ações
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem>Exportar Programas</DropdownMenuItem>
-              <DropdownMenuItem>Importar Programas</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+
         </div>
         <hr className="border-muted mb-8" />
 
@@ -211,21 +378,61 @@ export default function ProgramsPage() {
             <div className="space-y-8">
               {filteredFolders.map((folder) => (
                 <div key={folder.id} className="space-y-5">
-                  <button
-                    onClick={() => toggleFolder(folder.id)}
-                    className="flex items-center gap-3 text-lg font-semibold hover:text-primary transition-colors group"
-                  >
-                    {folder.isOpen ? (
-                      <ChevronDown className="h-6 w-6 transition-transform group-hover:translate-y-0.5" />
-                    ) : (
-                      <ChevronRight className="h-6 w-6 transition-transform group-hover:translate-x-0.5" />
-                    )}
-                    <Folder className="h-6 w-6" />
-                    <span>{folder.name}</span>
-                    <Badge variant="secondary" className="ml-2 px-3 py-1">
-                      {folder.programs.length}
-                    </Badge>
-                  </button>
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => toggleFolder(folder.id)}
+                      className="flex items-center gap-3 text-lg font-semibold hover:text-primary transition-colors group"
+                    >
+                      {folder.isOpen ? (
+                        <ChevronDown className="h-6 w-6 transition-transform group-hover:translate-y-0.5" />
+                      ) : (
+                        <ChevronRight className="h-6 w-6 transition-transform group-hover:translate-x-0.5" />
+                      )}
+                      <Folder className="h-6 w-6" />
+                      <span>{folder.name}</span>
+                      <Badge variant="secondary" className="ml-2 px-3 py-1">
+                        {folder.programs.length}
+                      </Badge>
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      {/* Create Program in Folder Button */}
+                      <Button 
+                        asChild
+                        variant="outline" 
+                        size="sm"
+                        className="h-8"
+                      >
+                        <Link href={folder.id !== null ? `/trainer/${trainerId}/programs/new?folder=${folder.id}` : `/trainer/${trainerId}/programs/new`}>
+                          <Plus className="h-4 w-4 mr-1" />
+                          Novo Programa
+                        </Link>
+                      </Button>
+
+                      {/* Folder Actions - Only show for folders that are not "Sem Pasta" */}
+                      {folder.id !== null && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditFolder(folder)}>
+                              Editar Pasta
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleDeleteFolderConfirm(folder)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir Pasta
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
+                  </div>
 
                   {folder.isOpen && (
                     <div className="pl-10">
@@ -298,9 +505,29 @@ export default function ProgramsPage() {
                                         <DropdownMenuItem asChild>
                                           <Link href={`/trainer/${trainerId}/programs/${program.id}/edit`}>Editar Programa</Link>
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem>Duplicar Programa</DropdownMenuItem>
-                                        <DropdownMenuItem>Atribuir a Aluno</DropdownMenuItem>
-                                        <DropdownMenuItem className="text-destructive">Excluir Programa</DropdownMenuItem>
+                                        <DropdownMenuItem 
+                                          onClick={() => handleMoveProgramToFolder(program)}
+                                        >
+                                          <FolderInput className="h-4 w-4 mr-2" />
+                                          Mover para Pasta
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem 
+                                          onClick={() => handleDuplicateProgram(program)}
+                                          disabled={isDuplicating}
+                                        >
+                                          <Copy className="h-4 w-4 mr-2" />
+                                          {isDuplicating ? "Duplicando..." : "Duplicar Programa"}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem 
+                                          className="text-destructive"
+                                          onClick={() => {
+                                            setProgramToDelete(program)
+                                            setDeleteDialogOpen(true)
+                                          }}
+                                        >
+                                          <Trash2 className="h-4 w-4 mr-2" />
+                                          Excluir Programa
+                                        </DropdownMenuItem>
                                       </DropdownMenuContent>
                                     </DropdownMenu>
                                   </div>
@@ -325,6 +552,156 @@ export default function ProgramsPage() {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir Programa</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir o programa "{programToDelete?.name}"? 
+                Esta ação não pode ser desfeita e todos os treinos associados serão removidos.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDeleteProgram}
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Excluindo...
+                  </>
+                ) : (
+                  "Excluir"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Folder Create/Edit Dialog */}
+        <Dialog open={folderDialogOpen} onOpenChange={setFolderDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{folderToEdit ? "Editar Pasta" : "Nova Pasta"}</DialogTitle>
+              <DialogDescription>
+                {folderToEdit ? "Altere o nome da pasta." : "Crie uma nova pasta para organizar seus programas."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="folder-name">Nome da Pasta</Label>
+                <Input
+                  id="folder-name"
+                  placeholder="Digite o nome da pasta..."
+                  value={folderName}
+                  onChange={(e) => setFolderName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && folderName.trim()) {
+                      handleSaveFolder()
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setFolderDialogOpen(false)} disabled={isSavingFolder}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveFolder} disabled={!folderName.trim() || isSavingFolder}>
+                {isSavingFolder ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  folderToEdit ? "Salvar" : "Criar"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Folder Confirmation Dialog */}
+        <AlertDialog open={deleteFolderDialogOpen} onOpenChange={setDeleteFolderDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir Pasta</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir a pasta "{folderToDelete?.name}"?
+                {folderToDelete && folderToDelete.programs.length > 0 && (
+                  <span className="block mt-2 text-destructive font-medium">
+                    Atenção: Esta pasta contém {folderToDelete.programs.length} programa(s). 
+                    Os programas serão movidos para "Sem Pasta".
+                  </span>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeletingFolder}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDeleteFolder}
+                disabled={isDeletingFolder}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeletingFolder ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Excluindo...
+                  </>
+                ) : (
+                  "Excluir"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Move Program to Folder Dialog */}
+        <Dialog open={moveFolderDialogOpen} onOpenChange={setMoveFolderDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Mover Programa para Pasta</DialogTitle>
+              <DialogDescription>
+                Selecione a pasta para onde deseja mover o programa "{programToMove?.name}".
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Select value={selectedMoveFolder} onValueChange={setSelectedMoveFolder}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma pasta" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem Pasta</SelectItem>
+                  {folders.filter((folder) => folder.id !== null).map((folder) => (
+                    <SelectItem key={folder.id} value={folder.id.toString()}>
+                      {folder.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setMoveFolderDialogOpen(false)} disabled={isMovingFolder}>
+                Cancelar
+              </Button>
+              <Button onClick={handleConfirmMoveFolder} disabled={isMovingFolder}>
+                {isMovingFolder ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Movendo...
+                  </>
+                ) : (
+                  "Mover"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   )

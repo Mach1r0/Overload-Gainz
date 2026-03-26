@@ -25,6 +25,8 @@ interface Exercise {
   exerciseId?: number
   equipment?: string
   primaryMuscles?: string[]
+  image?: string | null
+  video_url?: string | null
 }
 
 interface ExerciseCardProps {
@@ -36,13 +38,14 @@ interface ExerciseCardProps {
   onUpdateName: (id: string, value: string) => void
   onUpdateNotes: (id: string, value: string) => void
   onRemove: (id: string) => void
-  onSelectExercise: (libraryExercise: ExerciseLibraryItem) => void
+  onSelectExercise: (exerciseId: string, libraryExercise: ExerciseLibraryItem) => void
   onAddSeries: (exerciseId: string) => void
   onUpdateSeries: (exerciseId: string, seriesId: string, field: keyof ExerciseSeries, value: string) => void
   onRemoveSeries: (exerciseId: string, seriesId: string) => void
   onToggleRepsRange: (exerciseId: string, seriesId: string) => void
   onFocus: (id: string) => void
   onBlur: () => void
+  onShowDetails: (exercise: Exercise) => void
   cardRef: (el: HTMLDivElement | null) => void
 }
 
@@ -62,6 +65,7 @@ export function ExerciseCard({
   onToggleRepsRange,
   onFocus,
   onBlur,
+  onShowDetails,
   cardRef
 }: ExerciseCardProps) {
   return (
@@ -69,9 +73,44 @@ export function ExerciseCard({
       <div className="space-y-4">
         <div className="flex items-center gap-3 relative">
           <GripVertical className="h-5 w-5 text-muted-foreground cursor-move flex-shrink-0" />
-          <span className="flex items-center justify-center w-7 h-7 rounded-full bg-primary/20 text-primary text-sm font-semibold flex-shrink-0">
-            {exerciseIndex + 1}
-          </span>
+          {exercise.image || exercise.video_url ? (
+            <button
+              onClick={() => onShowDetails(exercise)}
+              className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0 hover:ring-2 hover:ring-primary transition-all cursor-pointer"
+            >
+              {exercise.image ? (
+                <img 
+                  src={exercise.image} 
+                  alt={exercise.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const parent = e.currentTarget.parentElement;
+                    if (parent) {
+                      parent.innerHTML = `<span class="flex items-center justify-center w-full h-full text-primary text-sm font-semibold">${exerciseIndex + 1}</span>`;
+                    }
+                  }}
+                />
+              ) : exercise.video_url ? (
+                <video 
+                  src={exercise.video_url} 
+                  className="w-full h-full object-cover"
+                  muted
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const parent = e.currentTarget.parentElement;
+                    if (parent) {
+                      parent.innerHTML = `<span class="flex items-center justify-center w-full h-full text-primary text-sm font-semibold">${exerciseIndex + 1}</span>`;
+                    }
+                  }}
+                />
+              ) : null}
+            </button>
+          ) : (
+            <span className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/20 text-primary text-sm font-semibold flex-shrink-0">
+              {exerciseIndex + 1}
+            </span>
+          )}
           <div className="flex-1 relative">
             <Input
               value={exercise.name}
@@ -104,7 +143,7 @@ export function ExerciseCard({
                   return matches.map((ex) => (
                     <button
                       key={ex.id}
-                      onClick={() => onSelectExercise(ex)}
+                      onClick={() => onSelectExercise(exercise.id, ex)}
                       className="w-full px-3 py-2 text-left hover:bg-accent/50 transition-colors border-b border-border/30 text-sm"
                     >
                       <p className="font-medium text-foreground">{ex.name}</p>

@@ -46,10 +46,20 @@ class DietPlan(models.Model):
         return f"{self.name} for {self.student.username}"
 
 class Meal(models.Model):
+    options = [ 
+        ('breakfast', 'Breakfast'),
+        ('lunch', 'Lunch'),
+        ('dinner', 'Dinner'),
+        ('snack', 'Snack'),
+        ('cheat', 'Cheat meal'),
+        ('other', 'Other'), 
+    ]
+    
     diet_plan = models.ForeignKey(DietPlan, on_delete=models.CASCADE, related_name='meals')
     name = models.CharField(max_length=100) 
     time = models.TimeField()
     description = models.TextField(blank=True, null=True)
+    options_type = models.CharField(max_length=20, choices=options, default='other')
     
     food_items = models.ManyToManyField(
         FoodItem, 
@@ -82,9 +92,6 @@ class MealFoodItem(models.Model):
     food_item = models.ForeignKey(FoodItem, on_delete=models.PROTECT)
     quantity = models.FloatField()
     unit = models.CharField(max_length=10, choices=UNIT_CHOICES, default='g')
-
-    class Meta:
-        unique_together = ('meal', 'food_item')
 
     def __str__(self):
         return f"{self.quantity}{self.unit} of {self.food_item.name}"

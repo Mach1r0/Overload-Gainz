@@ -67,6 +67,7 @@ export default function TrainerVideosPage() {
   const [teacherId, setTeacherId] = useState<number | null>(null)
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [selectedVideoForPreview, setSelectedVideoForPreview] = useState<VideoLesson | null>(null)
   const [uploadData, setUploadData] = useState<{
     title: string
     description: string
@@ -112,11 +113,6 @@ export default function TrainerVideosPage() {
   }
 
   const handleUpload = async () => {
-    if (!teacherId) {
-      alert('Teacher ID not found')
-      return
-    }
-
     if (!uploadData.title || !uploadData.category) {
       alert('Por favor, preencha o título e a categoria')
       return
@@ -125,8 +121,8 @@ export default function TrainerVideosPage() {
     try {
       setUploading(true)
       
-      const videoData = {
-        teacher: teacherId,
+      // Don't send teacher - backend will auto-set it from authenticated user
+      const videoData: any = {
         title: uploadData.title,
         description: uploadData.description,
         category: uploadData.category,
@@ -136,7 +132,7 @@ export default function TrainerVideosPage() {
       }
 
       console.log('Creating video:', videoData)
-      await createVideoLesson(videoData)
+      await createVideoLesson(videoData as any)
       
       // Reset form
       setUploadData({
@@ -155,7 +151,8 @@ export default function TrainerVideosPage() {
       alert('Vídeo criado com sucesso!')
     } catch (error: any) {
       console.error('Error uploading video:', error)
-      alert('Erro ao criar vídeo: ' + (error.response?.data?.detail || error.message))
+      console.error('Error response:', error.response?.data)
+      alert('Erro ao criar vídeo: ' + JSON.stringify(error.response?.data || error.message))
     } finally {
       setUploading(false)
     }
@@ -351,7 +348,10 @@ export default function TrainerVideosPage() {
             <Card key={video.id} className="p-4 bg-card border-border">
               <div className="flex gap-4">
                 {/* Thumbnail / Embed */}
-                <div className="relative w-72 h-40 bg-muted rounded-lg flex-shrink-0 overflow-hidden">
+                <div 
+                  className="relative w-72 h-40 bg-muted rounded-lg flex-shrink-0 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => setSelectedVideoForPreview(video)}
+                >
                   {video.url_youtube ? (
                     <iframe
                       className="w-full h-full"
@@ -430,6 +430,36 @@ export default function TrainerVideosPage() {
             </div>
           </Card>
         )}
+
+        {/* Video Preview Modal */}
+        <Dialog open={!!selectedVideoForPreview} onOpenChange={(open) => {
+          if (!open) setSelectedVideoForPreview(null)
+        }}>
+          <DialogContent className="max-w-5xl w-full">
+            <DialogHeader>
+              <DialogTitle>{selectedVideoForPreview?.title}</DialogTitle>
+              <DialogDescription>
+                {selectedVideoForPreview?.description}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="w-full aspect-video bg-muted rounded-lg overflow-hidden">
+              {selectedVideoForPreview?.url_youtube ? (
+                <iframe
+                  className="w-full h-full"
+                  src={getYouTubeEmbedUrl(selectedVideoForPreview.url_youtube)}
+                  title={selectedVideoForPreview.title}
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Video className="h-16 w-16 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

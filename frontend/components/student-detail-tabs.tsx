@@ -110,7 +110,7 @@ export function StudentDetailTabs({ studentId, trainerId }: { studentId: string,
       <Tabs defaultValue="diets" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="diets">Dietas</TabsTrigger>
-          <TabsTrigger value="training">Treinos</TabsTrigger>
+          <TabsTrigger value="training">Programas</TabsTrigger>
           <TabsTrigger value="progress">Fotos e Medidas</TabsTrigger>
         </TabsList>
 

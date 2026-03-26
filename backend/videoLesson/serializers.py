@@ -3,13 +3,15 @@ from .models import VideoLesson
 from rest_framework import serializers
 
 class VideoLessonSerializer(serializers.ModelSerializer):
-    teacher = serializers.PrimaryKeyRelatedField(queryset=Teacher.objects.all())
+    teacher = serializers.PrimaryKeyRelatedField(read_only=True)
+    teacher_name = serializers.CharField(source='teacher.user.get_full_name', read_only=True)
 
     class Meta:
         model = VideoLesson
         fields = [
             'id',
             'teacher',
+            'teacher_name',
             'title',
             'description',
             'video_file',
@@ -19,5 +21,6 @@ class VideoLessonSerializer(serializers.ModelSerializer):
             'category',
             'state',
             'for_all',
+            'view_count',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'teacher_name', 'teacher', 'view_count']

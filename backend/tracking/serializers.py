@@ -13,6 +13,8 @@ class ExerciseLogSerializer(serializers.ModelSerializer):
     workout_exercise = WorkoutExerciseSerializer(read_only=True)
     exercise = ExerciseSerializer(read_only=True)
     set_logs = SetLogSerializer(many=True, read_only=True)
+
+    set_logs = SetLogSerializer(many=True, read_only=True)
     one_rep_max = serializers.SerializerMethodField()
 
     def get_one_rep_max(self, obj):
@@ -40,8 +42,6 @@ class ExerciseLogSerializer(serializers.ModelSerializer):
             'one_rep_max',
         ]
         read_only_fields = ['created_at']
-
- 
 
 class WorkoutSessionSerializer(serializers.ModelSerializer):
     exercise_logs = ExerciseLogSerializer(many=True, read_only=True)

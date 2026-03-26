@@ -275,7 +275,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="text-center min-w-[100px]">
                           <p className="text-sm font-medium text-foreground">
-                            {new Date(student.lastWorkout).toLocaleDateString("pt-BR")}
+                            {student.lastWorkout ? new Date(student.lastWorkout).toLocaleDateString("pt-BR") : "Sem treinos"}
                           </p>
                           <p className="text-xs text-muted-foreground">Último treino</p>
                         </div>

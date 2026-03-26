@@ -31,7 +31,7 @@ class MealSerializer(serializers.ModelSerializer):
 
     class Meta: 
         model = Meal 
-        fields = ['id', 'diet_plan_id', 'name', 'time', 'description', 'food_items', 'total_calories']
+        fields = ['id', 'options_type', 'diet_plan_id', 'name', 'time', 'description', 'food_items', 'total_calories']
     
     def get_food_items(self, obj):
         meal_food_items = obj.mealfooditem_set.all()
@@ -42,7 +42,7 @@ class MealCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Meal
-        fields = ['id', 'name', 'time', 'description', 'foods']
+        fields = ['id', 'name', 'time', 'description', 'options_type', 'foods']
 
     def create(self, validated_data):
         foods_data = validated_data.pop('foods', [])
@@ -60,7 +60,7 @@ class MealCreateSerializer(serializers.ModelSerializer):
                     'protein': float(food_data.get('protein', 0)),
                     'carbs': float(food_data.get('carbs', 0)),
                     'fats': float(food_data.get('fat', 0)),
-                    'category': 'OTH',  # Default category
+                    'category': 'OTH',
                 }
             )
             

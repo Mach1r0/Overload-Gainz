@@ -6,295 +6,36 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Plus, GripVertical, Trash2, Save } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { ArrowLeft, Plus, GripVertical, Trash2, Save, Coffee, Utensils, Moon, Apple, Cookie } from "lucide-react"
 import Link from "next/link"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
-import { authApi } from "@/lib/api/auth"
-import { createDietPlan } from "@/lib/api"
-import { getTeacherByUserId, getTeacherStudents } from "@/lib/api/teachers"
-import { useToast } from "@/hooks/use-toast"
-
-interface Meal {
-  id: string
-  name: string
-  time: string
-  foods: Food[]
-}
-
-interface Food {
-  id: string
-  name: string
-  quantity: string
-  unit: string
-  calories: string
-  protein: string
-  carbs: string
-  fat: string
-}
-
-interface Student {
-  id: number
-  student_id: number
-  student_name: string
-  student_user_id: number
-  is_active: boolean
-}
+import { useDietBuilder } from "@/hooks/use-diet-builder"
 
 export default function NewDietPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const { toast } = useToast()
-  const [dietName, setDietName] = useState("")
-  const [category, setCategory] = useState("")
-  const [targetCalories, setTargetCalories] = useState("")
-  const [description, setDescription] = useState("")
-  const [studentId, setStudentId] = useState("")
-  const [students, setStudents] = useState<Student[]>([])
-  const [loadingStudents, setLoadingStudents] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [meals, setMeals] = useState<Meal[]>([
-    {
-      id: "1",
-      name: "Café da Manhã",
-      time: "07:00",
-      foods: [{ id: "1", name: "", quantity: "", unit: "g", calories: "", protein: "", carbs: "", fat: "" }],
-    },
-  ])
-
-  const addMeal = () => {
-    const newMeal: Meal = {
-      id: Date.now().toString(),
-      name: "",
-      time: "",
-      foods: [
-        { id: Date.now().toString(), name: "", quantity: "", unit: "g", calories: "", protein: "", carbs: "", fat: "" },
-      ],
-    }
-    setMeals([...meals, newMeal])
-  }
-
-  const removeMeal = (mealId: string) => {
-    setMeals(meals.filter((m) => m.id !== mealId))
-  }
-
-  const updateMeal = (mealId: string, field: keyof Meal, value: string) => {
-    setMeals(meals.map((m) => (m.id === mealId ? { ...m, [field]: value } : m)))
-  }
-
-  const addFood = (mealId: string) => {
-    setMeals(
-      meals.map((m) =>
-        m.id === mealId
-          ? {
-              ...m,
-              foods: [
-                ...m.foods,
-                {
-                  id: Date.now().toString(),
-                  name: "",
-                  quantity: "",
-                  unit: "g",
-                  calories: "",
-                  protein: "",
-                  carbs: "",
-                  fat: "",
-                },
-              ],
-            }
-          : m,
-      ),
-    )
-  }
-
-  const removeFood = (mealId: string, foodId: string) => {
-    setMeals(meals.map((m) => (m.id === mealId ? { ...m, foods: m.foods.filter((f) => f.id !== foodId) } : m)))
-  }
-
-  const updateFood = (mealId: string, foodId: string, field: keyof Food, value: string) => {
-    setMeals(
-      meals.map((m) =>
-        m.id === mealId ? { ...m, foods: m.foods.map((f) => (f.id === foodId ? { ...f, [field]: value } : f)) } : m,
-      ),
-    )
-  }
-
-  // Mapeamento de categorias frontend → backend
-  const mapCategoryToGoal = (category: string): 'BUK' | 'CUT' | 'MAINT' => {
-    const mapping: Record<string, 'BUK' | 'CUT' | 'MAINT'> = {
-      'hipertrofia': 'BUK',
-      'emagrecimento': 'CUT',
-      'manutencao': 'MAINT',
-      'lowcarb': 'CUT',
-      'vegetariana': 'MAINT',
-    }
-    return mapping[category] || 'MAINT'
-  }
-
-  // Mapeamento de unidades
-  const mapUnit = (unit: string): string => {
-    const mapping: Record<string, string> = {
-      'g': 'g',
-      'ml': 'ml',
-      'un': 'unit',
-      'col': 'cup',
-      'xic': 'cup',
-    }
-    return mapping[unit] || unit
-  }
-
-  const handleSave = async () => {
-    console.log('handleSave called')
-    try {
-      setSaving(true)
-
-      // Validações
-      if (!dietName.trim()) {
-        console.log('Validation failed: dietName')
-        toast({
-          title: "Erro",
-          description: "Nome da dieta é obrigatório",
-          variant: "destructive",
-        })
-        setSaving(false)
-        return
-      }
-
-      if (!category) {
-        console.log('Validation failed: category')
-        toast({
-          title: "Erro",
-          description: "Selecione uma categoria",
-          variant: "destructive",
-        })
-        setSaving(false)
-        return
-      }
-
-      if (!studentId) {
-        console.log('Validation failed: studentId')
-        toast({
-          title: "Erro",
-          description: "Selecione um aluno",
-          variant: "destructive",
-        })
-        setSaving(false)
-        return
-      }
-
-      console.log('Validations passed')
-
-      // Preparar dados para enviar
-      const today = new Date()
-      const startDate = today.toISOString().split('T')[0]
-      const endDate = new Date(today.setMonth(today.getMonth() + 3)).toISOString().split('T')[0]
-
-      const dietData = {
-        student_id: parseInt(studentId),
-        name: dietName,
-        goal: mapCategoryToGoal(category),
-        description: description || undefined,
-        target_calories: targetCalories ? parseInt(targetCalories) : undefined,
-        start_date: startDate,
-        end_date: endDate,
-        meals: meals
-          .filter(meal => meal.name.trim() && meal.time)
-          .map(meal => ({
-            name: meal.name,
-            time: meal.time + ':00', // Adiciona segundos
-            description: meal.name,
-            foods: meal.foods
-              .filter(food => food.name.trim() && food.quantity)
-              .map(food => ({
-                name: food.name,
-                quantity: parseFloat(food.quantity) || 0,
-                unit: mapUnit(food.unit),
-                calories: parseInt(food.calories) || 0,
-                protein: parseFloat(food.protein) || 0,
-                carbs: parseFloat(food.carbs) || 0,
-                fat: parseFloat(food.fat) || 0,
-              }))
-          }))
-      }
-
-      console.log('Diet data prepared:', dietData)
-
-      // Enviar para API
-      console.log('Calling API...')
-      const result = await createDietPlan(dietData)
-      console.log('API response:', result)
-
-      toast({
-        title: "Sucesso!",
-        description: "Dieta criada com sucesso",
-      })
-
-      // Redirecionar: se veio com ?student= na URL, voltar para a página do aluno
-      const fromStudent = searchParams?.get('student')
-      const redirectTo = fromStudent ? `/trainer/${userId}/students/${fromStudent}` : `/trainer/${userId}/diets`
-      console.log('Redirecting to:', redirectTo)
-      router.push(redirectTo)
-    } catch (error: any) {
-      console.error('Error saving diet:', error)
-      console.error('Error response:', error.response)
-      console.error('Error data:', error.response?.data)
-      toast({
-        title: "Erro ao salvar dieta",
-        description: error.response?.data?.detail || error.response?.data?.message || error.message || "Tente novamente",
-        variant: "destructive",
-      })
-    } finally {
-      console.log('Finally block - setting saving to false')
-      setSaving(false)
-    }
-  }
-
-  const pathname = usePathname()
-  const [userId, setUserId] = useState<string | null>(null)
-
-  useEffect(() => {
-    const user = authApi.getUserFromStorage()
-    if (user) {
-      setUserId(user.id.toString())
-    }
-  }, [])
-
-  useEffect(() => {
-    const preset = searchParams?.get('student')
-    if (preset) {
-      setStudentId(preset)
-    }
-  }, [searchParams])
-
-  useEffect(() => {
-    const fetchStudents = async () => {
-      if (!userId) return
-      
-      try {
-        setLoadingStudents(true)
-        const teacher = await getTeacherByUserId(userId)
-        const studentsData = await getTeacherStudents()
-        console.log('Students fetched:', studentsData)
-        setStudents(studentsData)
-        const presetStudentId = searchParams?.get('student')
-        if (presetStudentId) {
-          const match = studentsData.find((s: any) => String(s.student_id) === String(presetStudentId))
-          if (match) setStudentId(String(match.student_user_id))
-        }
-      } catch (error) {
-        console.error('Error fetching students:', error)
-        toast({
-          title: "Erro ao carregar alunos",
-          description: "Não foi possível carregar a lista de alunos",
-          variant: "destructive",
-        })
-      } finally {
-        setLoadingStudents(false)
-      }
-    }
-
-    fetchStudents()
-  }, [userId, toast])
+  const {
+    userId,
+    dietName,
+    setDietName,
+    category,
+    setCategory,
+    targetCalories,
+    setTargetCalories,
+    description,
+    setDescription,
+    studentId,
+    setStudentId,
+    students,
+    loadingStudents,
+    meals,
+    addMeal,
+    removeMeal,
+    updateMeal,
+    addFood,
+    removeFood,
+    updateFood,
+    saving,
+    handleSave,
+  } = useDietBuilder()
 
   if (!userId) {
     return null
@@ -454,6 +195,59 @@ export default function NewDietPage() {
                         value={meal.time}
                         onChange={(e) => updateMeal(meal.id, "time", e.target.value)}
                       />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Tipo de Refeição</Label>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge
+                        variant={meal.type === 'breakfast' ? 'default' : 'outline'}
+                        className="cursor-pointer hover:bg-primary/90 px-3 py-1.5"
+                        onClick={() => updateMeal(meal.id, "type", "breakfast")}
+                      >
+                        <Coffee className="h-3 w-3 mr-1" />
+                        Café da Manhã
+                      </Badge>
+                      <Badge
+                        variant={meal.type === 'lunch' ? 'default' : 'outline'}
+                        className="cursor-pointer hover:bg-primary/90 px-3 py-1.5"
+                        onClick={() => updateMeal(meal.id, "type", "lunch")}
+                      >
+                        <Utensils className="h-3 w-3 mr-1" />
+                        Almoço
+                      </Badge>
+                      <Badge
+                        variant={meal.type === 'dinner' ? 'default' : 'outline'}
+                        className="cursor-pointer hover:bg-primary/90 px-3 py-1.5"
+                        onClick={() => updateMeal(meal.id, "type", "dinner")}
+                      >
+                        <Moon className="h-3 w-3 mr-1" />
+                        Jantar
+                      </Badge>
+                      <Badge
+                        variant={meal.type === 'snack' ? 'default' : 'outline'}
+                        className="cursor-pointer hover:bg-primary/90 px-3 py-1.5"
+                        onClick={() => updateMeal(meal.id, "type", "snack")}
+                      >
+                        <Apple className="h-3 w-3 mr-1" />
+                        Lanche
+                      </Badge>
+                      <Badge
+                        variant={meal.type === 'cheat' ? 'default' : 'outline'}
+                        className="cursor-pointer hover:bg-primary/90 px-3 py-1.5"
+                        onClick={() => updateMeal(meal.id, "type", "cheat")}
+                      >
+                        <Cookie className="h-3 w-3 mr-1" />
+                        Refeição Livre
+                      </Badge>
+                      <Badge
+                        variant={meal.type === 'other' ? 'default' : 'outline'}
+                        className="cursor-pointer hover:bg-primary/90 px-3 py-1.5"
+                        onClick={() => updateMeal(meal.id, "type", "other")}
+                      >
+                        Outro
+                      </Badge>
                     </div>
                   </div>
 

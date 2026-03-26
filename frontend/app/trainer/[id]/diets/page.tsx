@@ -58,7 +58,6 @@ export default function DietsPage() {
         return
       }
       
-      // Get teacher ID
       const teacherResponse = await apiClient.get(`/trainer/teachers/?user=${user.id}`)
       const teacher = teacherResponse.data?.[0]
       
@@ -68,13 +67,17 @@ export default function DietsPage() {
         return
       }
       
-      // Get diet plans for this teacher
-      const dietsResponse = await apiClient.get(`/diet/?teacher=${teacher.id}`)
-      const dietsData = dietsResponse.data || []
+      console.log('Teacher data:', teacher)
+      console.log('Fetching diets for teacher user_id:', teacher.user_id || user.id)
+      
+      const teacherUserId = teacher.user_id || teacher.user?.id || user.id
+      const dietsResponse = await apiClient.get(`/diet-plans/?teacher=${teacherUserId}`)
+      const dietsData = Array.isArray(dietsResponse.data) 
+        ? dietsResponse.data 
+        : (dietsResponse.data?.results || [])
       
       console.log('Diets data from API:', dietsData)
       
-      // Transform data
       const transformedDiets = dietsData
         .map((diet: any) => ({
           id: diet.id,
@@ -84,11 +87,10 @@ export default function DietsPage() {
           end_date: diet.end_date,
           is_active: diet.is_active,
           meals_count: diet.meals?.length || 0,
-          student_name: diet.student?.user?.first_name 
-            ? `${diet.student.user.first_name} ${diet.student.user.last_name || ''}`.trim()
-            : 'Aluno',
+          student_name: diet.student?.first_name 
+            ? `${diet.student.first_name} ${diet.student.last_name || ''}`.trim()
+            : (diet.student_name || 'Aluno'),
         }))
-      
       console.log('Transformed diets:', transformedDiets)
       setDiets(transformedDiets)
     } catch (error) {
@@ -123,7 +125,6 @@ export default function DietsPage() {
           </Button>
         </div>
 
-        {/* Diets List */}
         {diets.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">

@@ -24,7 +24,6 @@ class ExerciseSerializer(serializers.ModelSerializer):
             'mechanic',
             'equipment',
             'category',
-            'muscle_group',
             'primary_muscles',
             'primary_muscles_list',
             'secondary_muscles',

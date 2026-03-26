@@ -745,32 +745,53 @@ def create_diet_plans():
         )
         diet_plans.append(diet_plan)
         
-        # Breakfast
-        breakfast = Meal.objects.create(
+        # Breakfast Option 1
+        breakfast1 = Meal.objects.create(
             diet_plan=diet_plan,
-            name='Café da Manhã',
+            name='Café da Manhã - Opção 1',
             time=time(7, 0),
-            description='Primeira refeição do dia'
+            description='Primeira refeição do dia - Aveia com frutas',
+            options_type='breakfast'
         )
         
-        # Add food items to breakfast
         oats = FoodItem.objects.filter(name='Aveia').first()
         banana = FoodItem.objects.filter(name='Banana').first()
         eggs = FoodItem.objects.filter(name='Ovo (unidade)').first()
         
         if oats:
-            MealFoodItem.objects.create(meal=breakfast, food_item=oats, quantity=50, unit='g')
+            MealFoodItem.objects.create(meal=breakfast1, food_item=oats, quantity=50, unit='g')
         if banana:
-            MealFoodItem.objects.create(meal=breakfast, food_item=banana, quantity=100, unit='g')
+            MealFoodItem.objects.create(meal=breakfast1, food_item=banana, quantity=100, unit='g')
         if eggs:
-            MealFoodItem.objects.create(meal=breakfast, food_item=eggs, quantity=100, unit='g')
+            MealFoodItem.objects.create(meal=breakfast1, food_item=eggs, quantity=100, unit='g')
         
-        # Lunch
-        lunch = Meal.objects.create(
+        # Breakfast Option 2
+        breakfast2 = Meal.objects.create(
             diet_plan=diet_plan,
-            name='Almoço',
+            name='Café da Manhã - Opção 2',
+            time=time(7, 0),
+            description='Primeira refeição do dia - Pão integral com proteína',
+            options_type='breakfast'
+        )
+        
+        bread = FoodItem.objects.filter(name='Pão Integral').first()
+        cottage = FoodItem.objects.filter(name='Queijo Cottage').first()
+        apple = FoodItem.objects.filter(name='Maçã').first()
+        
+        if bread:
+            MealFoodItem.objects.create(meal=breakfast2, food_item=bread, quantity=50, unit='g')
+        if cottage:
+            MealFoodItem.objects.create(meal=breakfast2, food_item=cottage, quantity=100, unit='g')
+        if apple:
+            MealFoodItem.objects.create(meal=breakfast2, food_item=apple, quantity=100, unit='g')
+        
+        # Lunch Option 1
+        lunch1 = Meal.objects.create(
+            diet_plan=diet_plan,
+            name='Almoço - Opção 1',
             time=time(12, 0),
-            description='Refeição principal'
+            description='Refeição principal - Frango com arroz',
+            options_type='lunch'
         )
         
         chicken = FoodItem.objects.filter(name='Peito de Frango').first()
@@ -778,34 +799,79 @@ def create_diet_plans():
         broccoli = FoodItem.objects.filter(name='Brócolis').first()
         
         if chicken:
-            MealFoodItem.objects.create(meal=lunch, food_item=chicken, quantity=150, unit='g')
+            MealFoodItem.objects.create(meal=lunch1, food_item=chicken, quantity=150, unit='g')
         if rice:
-            MealFoodItem.objects.create(meal=lunch, food_item=rice, quantity=100, unit='g')
+            MealFoodItem.objects.create(meal=lunch1, food_item=rice, quantity=100, unit='g')
         if broccoli:
-            MealFoodItem.objects.create(meal=lunch, food_item=broccoli, quantity=100, unit='g')
+            MealFoodItem.objects.create(meal=lunch1, food_item=broccoli, quantity=100, unit='g')
         
-        # Snack
-        snack = Meal.objects.create(
+        # Lunch Option 2
+        lunch2 = Meal.objects.create(
             diet_plan=diet_plan,
-            name='Lanche da Tarde',
+            name='Almoço - Opção 2',
+            time=time(12, 0),
+            description='Refeição principal - Carne com batata doce',
+            options_type='lunch'
+        )
+        
+        beef = FoodItem.objects.filter(name='Patinho Moído').first()
+        sweet_potato = FoodItem.objects.filter(name='Batata Doce').first()
+        salad = FoodItem.objects.filter(name='Alface').first()
+        tomato = FoodItem.objects.filter(name='Tomate').first()
+        
+        if beef:
+            MealFoodItem.objects.create(meal=lunch2, food_item=beef, quantity=150, unit='g')
+        if sweet_potato:
+            MealFoodItem.objects.create(meal=lunch2, food_item=sweet_potato, quantity=150, unit='g')
+        if salad:
+            MealFoodItem.objects.create(meal=lunch2, food_item=salad, quantity=50, unit='g')
+        if tomato:
+            MealFoodItem.objects.create(meal=lunch2, food_item=tomato, quantity=50, unit='g')
+        
+        # Snack Option 1
+        snack1 = Meal.objects.create(
+            diet_plan=diet_plan,
+            name='Lanche da Tarde - Opção 1',
             time=time(15, 30),
-            description='Lanche intermediário'
+            description='Lanche intermediário - Whey com fruta',
+            options_type='snack'
         )
         
         whey = FoodItem.objects.filter(name='Whey Protein').first()
         apple = FoodItem.objects.filter(name='Maçã').first()
         
         if whey:
-            MealFoodItem.objects.create(meal=snack, food_item=whey, quantity=30, unit='g')
+            MealFoodItem.objects.create(meal=snack1, food_item=whey, quantity=30, unit='g')
         if apple:
-            MealFoodItem.objects.create(meal=snack, food_item=apple, quantity=100, unit='g')
+            MealFoodItem.objects.create(meal=snack1, food_item=apple, quantity=100, unit='g')
         
-        # Dinner
-        dinner = Meal.objects.create(
+        # Snack Option 2
+        snack2 = Meal.objects.create(
             diet_plan=diet_plan,
-            name='Jantar',
+            name='Lanche da Tarde - Opção 2',
+            time=time(15, 30),
+            description='Lanche intermediário - Iogurte com amendoim',
+            options_type='snack'
+        )
+        
+        yogurt = FoodItem.objects.filter(name='Iogurte Grego Natural').first()
+        peanuts = FoodItem.objects.filter(name='Amendoim').first()
+        banana = FoodItem.objects.filter(name='Banana').first()
+        
+        if yogurt:
+            MealFoodItem.objects.create(meal=snack2, food_item=yogurt, quantity=150, unit='g')
+        if peanuts:
+            MealFoodItem.objects.create(meal=snack2, food_item=peanuts, quantity=20, unit='g')
+        if banana:
+            MealFoodItem.objects.create(meal=snack2, food_item=banana, quantity=100, unit='g')
+        
+        # Dinner Option 1
+        dinner1 = Meal.objects.create(
+            diet_plan=diet_plan,
+            name='Jantar - Opção 1',
             time=time(19, 0),
-            description='Última refeição do dia'
+            description='Última refeição do dia - Peixe com batata doce',
+            options_type='dinner'
         )
         
         fish = FoodItem.objects.filter(name='Tilápia').first()
@@ -813,13 +879,36 @@ def create_diet_plans():
         salad = FoodItem.objects.filter(name='Alface').first()
         
         if fish:
-            MealFoodItem.objects.create(meal=dinner, food_item=fish, quantity=150, unit='g')
+            MealFoodItem.objects.create(meal=dinner1, food_item=fish, quantity=150, unit='g')
         if sweet_potato:
-            MealFoodItem.objects.create(meal=dinner, food_item=sweet_potato, quantity=150, unit='g')
+            MealFoodItem.objects.create(meal=dinner1, food_item=sweet_potato, quantity=150, unit='g')
         if salad:
-            MealFoodItem.objects.create(meal=dinner, food_item=salad, quantity=50, unit='g')
+            MealFoodItem.objects.create(meal=dinner1, food_item=salad, quantity=50, unit='g')
+        
+        # Dinner Option 2
+        dinner2 = Meal.objects.create(
+            diet_plan=diet_plan,
+            name='Jantar - Opção 2',
+            time=time(19, 0),
+            description='Última refeição do dia - Frango com legumes',
+            options_type='dinner'
+        )
+        
+        chicken = FoodItem.objects.filter(name='Peito de Frango').first()
+        broccoli = FoodItem.objects.filter(name='Brócolis').first()
+        carrot = FoodItem.objects.filter(name='Cenoura').first()
+        olive_oil = FoodItem.objects.filter(name='Azeite de Oliva').first()
+        
+        if chicken:
+            MealFoodItem.objects.create(meal=dinner2, food_item=chicken, quantity=150, unit='g')
+        if broccoli:
+            MealFoodItem.objects.create(meal=dinner2, food_item=broccoli, quantity=100, unit='g')
+        if carrot:
+            MealFoodItem.objects.create(meal=dinner2, food_item=carrot, quantity=80, unit='g')
+        if olive_oil:
+            MealFoodItem.objects.create(meal=dinner2, food_item=olive_oil, quantity=5, unit='ml')
     
-    print(f"✅ Created {len(diet_plans)} diet plans with meals")
+    print(f"✅ Created {len(diet_plans)} diet plans with multiple meal options")
     return diet_plans
 
 def create_progress_logs():

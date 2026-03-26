@@ -49,33 +49,38 @@ export function SidebarNav({ userType }: SidebarNavProps) {
       title: "Dashboard",
       href: `/trainer/${userId}/dashboard`,
       icon: Home,
+      badge: null,
     },
     {
       title: "Alunos",
       href: `/trainer/${userId}/students`,
       icon: Users,
+      badge: null,
     },
     {
       title: "Programas",
       href: `/trainer/${userId}/programs`,
       icon: BookOpen,
+      badge: null,
     },
     {
       title: "Dietas",
       href: `/trainer/${userId}/diets`,
       icon: Apple,
+      badge: null,
     },
     {
       title: "Vídeo Aulas",
       href: `/trainer/${userId}/videos`,
       icon: PlaySquare,
+      badge: null,
     },
     {
       title: "Assistente IA",
       href: `/trainer/${userId}/ai-assistant`,
-      icon: MessageSquare,
+      icon: Sparkles,
+      badge: "Novo",
     },
- 
   ]
 
   const studentLinks = [
@@ -83,36 +88,43 @@ export function SidebarNav({ userType }: SidebarNavProps) {
       title: "Dashboard",
       href: `/student/${userId}/dashboard`,
       icon: Home,
+      badge: null,
     },
     {
       title: "Meus Treinos",
       href: `/student/${userId}/workout`,
       icon: Dumbbell,
+      badge: null,
     },
     {
       title: "Minha Dieta",
       href: `/student/${userId}/diet`,
       icon: Apple,
+      badge: null,
     },
     {
       title: "Vídeo Aulas",
       href: `/student/${userId}/videos`,
       icon: PlaySquare,
+      badge: null,
     },
     {
       title: "Progresso",
       href: `/student/${userId}/progress`,
       icon: TrendingUp,
+      badge: null,
     },
     {
       title: "Assistente IA",
       href: `/student/${userId}/ai-assistant`,
-      icon: MessageSquare,
+      icon: Sparkles,
+      badge: "Novo",
     },
     {
       title: "Medidas",
       href: `/student/${userId}/measurements`,
       icon: Ruler,
+      badge: null,
     },
   ]
 
@@ -134,7 +146,7 @@ export function SidebarNav({ userType }: SidebarNavProps) {
 
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
           <div className="space-y-1">
-            <p className="px-2 text-xs uppercase tracking-[0.18em] text-slate-500">Navegação</p>
+            <p className="px-2 text-xs uppercase tracking-[0.18em] text-slate-500 font-medium">Navegação</p>
             {links.map((link) => {
               const isActive = pathname === link.href || pathname?.startsWith(link.href + "/")
               return (
@@ -142,14 +154,19 @@ export function SidebarNav({ userType }: SidebarNavProps) {
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    "flex items-center gap-3.5 rounded-xl px-3.5 py-3 text-base font-semibold transition-all",
+                    "flex items-center gap-3.5 rounded-xl px-3.5 py-3 text-base font-medium transition-all group",
                     isActive
                       ? "bg-gradient-to-r from-sky-700/80 via-indigo-500/70 to-cyan-400/60 text-white shadow-lg shadow-sky-900/25"
                       : "text-slate-300 hover:text-white hover:bg-slate-800/60"
                   )}
                 >
-                  <link.icon className="h-6 w-6" />
-                  <span>{link.title}</span>
+                  <link.icon className={cn("h-5 w-5", isActive ? "" : "group-hover:scale-110 transition-transform")} />
+                  <span className="flex-1">{link.title}</span>
+                  {link.badge && (
+                    <span className="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
+                      {link.badge}
+                    </span>
+                  )}
                 </Link>
               )
             })}

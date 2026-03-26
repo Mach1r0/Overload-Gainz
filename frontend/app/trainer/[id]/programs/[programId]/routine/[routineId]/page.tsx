@@ -1,6 +1,6 @@
 "use client"
 
-import { use } from "react"
+import { use, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,6 +11,7 @@ import { ArrowLeft, Plus } from "lucide-react"
 import Link from "next/link"
 import { ExerciseCard } from "@/components/routine-editor/exercise-card"
 import { ExerciseLibrarySidebar } from "@/components/routine-editor/exercise-library-sidebar"
+import { ExerciseDetailsModal } from "@/components/exercise-details-modal"
 import { useRoutineEditor } from "@/hooks/use-routine-editor"
 
 export default function RoutineEditorPage({
@@ -20,6 +21,8 @@ export default function RoutineEditorPage({
 }) {
   const { id, programId, routineId } = use(params)
   const router = useRouter()
+  const [selectedExerciseForDetails, setSelectedExerciseForDetails] = useState<any>(null)
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
 
   const {
     routineTitle,
@@ -55,20 +58,23 @@ export default function RoutineEditorPage({
     toggleRepsRange,
     getTotalExercises,
     getTotalSets,
-  } = useRoutineEditor(routineId)
+    saveRoutine,
+  } = useRoutineEditor(routineId, programId)
 
   const handleSave = async () => {
     try {
-      setSaving(true)
-      // TODO: Implement save logic
+      await saveRoutine()
       alert("Rotina salva com sucesso!")
       router.push(`/trainer/${id}/programs/${programId}/edit`)
     } catch (error) {
       console.error("Error saving routine:", error)
       alert("Erro ao salvar rotina")
-    } finally {
-      setSaving(false)
     }
+  }
+
+  const handleShowExerciseDetails = (exercise: any) => {
+    setSelectedExerciseForDetails(exercise)
+    setIsDetailsModalOpen(true)
   }
 
   if (loading) {
@@ -174,6 +180,7 @@ export default function RoutineEditorPage({
                     onUpdateSeries={updateSeriesField}
                     onRemoveSeries={removeSeries}
                     onToggleRepsRange={toggleRepsRange}
+                    onShowDetails={handleShowExerciseDetails}
                     onFocus={(id) => {
                       setSelectedExerciseSlotId(id)
                       setShowAutocomplete(true)
@@ -224,6 +231,12 @@ export default function RoutineEditorPage({
         filterMuscle={filterMuscle}
         onFilterMuscleChange={setFilterMuscle}
         onSelectExercise={selectExistingExercise}
+      />
+
+      <ExerciseDetailsModal
+        exercise={selectedExerciseForDetails}
+        isOpen={isDetailsModalOpen}
+        onClose={() => setIsDetailsModalOpen(false)}
       />
     </div>
   )
